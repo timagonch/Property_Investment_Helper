@@ -1,0 +1,51 @@
+RegionID,SizeRank,RegionName,RegionType,StateName,State,City,Metro,CountyName
+69164,7330,27006,zip,NC,NC,Advance,"Winston-Salem, NC",Davie County
+69165,17225,27007,zip,NC,NC,Ararat,"Mount Airy, NC",Surry County
+69166,16612,27009,zip,NC,NC,Belews Creek,"Winston-Salem, NC",Forsyth County
+69168,13385,27011,zip,NC,NC,Boonville,"Winston-Salem, NC",Yadkin County
+69169,3953,27012,zip,NC,NC,Clemmons,"Winston-Salem, NC",Forsyth County
+69170,11308,27013,zip,NC,NC,Cleveland,"Charlotte-Concord-Gastonia, NC-SC",Rowan County
+69171,28519,27014,zip,NC,NC,Cooleemee,"Winston-Salem, NC",Davie County
+69172,19043,27016,zip,NC,NC,Danbury,"Winston-Salem, NC",Stokes County
+69173,10194,27017,zip,NC,NC,Dobson,"Mount Airy, NC",Surry County
+69174,10935,27018,zip,NC,NC,East Bend,"Winston-Salem, NC",Yadkin County
+69175,14849,27019,zip,NC,NC,Germanton,"Winston-Salem, NC",Stokes County
+69176,12517,27020,zip,NC,NC,Hamptonville,"Winston-Salem, NC",Yadkin County
+69177,7442,27021,zip,NC,NC,King,"Winston-Salem, NC",Stokes County
+69178,21220,27022,zip,NC,NC,Lawsonville,"Winston-Salem, NC",Stokes County
+69179,8519,27023,zip,NC,NC,Lewisville,"Winston-Salem, NC",Forsyth County
+69180,16818,27024,zip,NC,NC,Lowgap,"Mount Airy, NC",Surry County
+69181,9446,27025,zip,NC,NC,Madison,"Greensboro-High Point, NC",Rockingham County
+69182,14616,27027,zip,NC,NC,Mayodan,"Greensboro-High Point, NC",Rockingham County
+69183,4831,27028,zip,NC,NC,Mocksville,"Winston-Salem, NC",Davie County
+69184,2682,27030,zip,NC,NC,Mount Airy,"Mount Airy, NC",Surry County
+69186,9303,27040,zip,NC,NC,Pfafftown,"Winston-Salem, NC",Forsyth County
+69187,10923,27041,zip,NC,NC,Pilot Mountain,"Mount Airy, NC",Surry County
+69189,11355,27043,zip,NC,NC,Pinnacle,"Mount Airy, NC",Surry County
+69190,9716,27045,zip,NC,NC,Rural Hall,"Winston-Salem, NC",Forsyth County
+69191,18938,27046,zip,NC,NC,Sandy Ridge,"Winston-Salem, NC",Stokes County
+69193,10595,27048,zip,NC,NC,Stoneville,"Greensboro-High Point, NC",Rockingham County
+69195,12596,27050,zip,NC,NC,Tobaccoville,"Winston-Salem, NC",Forsyth County
+69196,11697,27051,zip,NC,NC,Walkertown,"Winston-Salem, NC",Forsyth County
+69197,9281,27052,zip,NC,NC,Walnut Cove,"Winston-Salem, NC",Stokes County
+69198,16732,27053,zip,NC,NC,Mount Airy,"Winston-Salem, NC",Stokes County
+69199,19201,27054,zip,NC,NC,Woodleaf,"Charlotte-Concord-Gastonia, NC-SC",Rowan County
+69200,8271,27055,zip,NC,NC,Yadkinville,"Winston-Salem, NC",Yadkin County
+69204,5312,27101,zip,NC,NC,Winston-Salem,"Winston-Salem, NC",Forsyth County
+69206,2938,27103,zip,NC,NC,Winston-Salem,"Winston-Salem, NC",Forsyth County
+69207,4024,27104,zip,NC,NC,Winston-Salem,"Winston-Salem, NC",Forsyth County
+69208,1796,27105,zip,NC,NC,Winston-Salem,"Winston-Salem, NC",Forsyth County
+69209,1196,27106,zip,NC,NC,Winston-Salem,"Winston-Salem, NC",Forsyth County
+69210,882,27107,zip,NC,NC,Winston-Salem,"Winston-Salem, NC",Forsyth County
+69221,1609,27127,zip,NC,NC,Winston-Salem,"Winston-Salem, NC",Forsyth County
+69233,5498,27203,zip,NC,NC,Asheboro,"Greensboro-High Point, NC",Randolph County
+69235,2698,27205,zip,NC,NC,Asheboro,"Greensboro-High Point, NC",Randolph County
+69236,15337,27207,zip,NC,NC,Bear Creek,"Durham-Chapel Hill, NC",Chatham County
+69237,20778,27208,zip,NC,NC,Bennett,"Durham-Chapel Hill, NC",Chatham County
+69238,14341,27209,zip,NC,NC,Biscoe,"Pinehurst-Southern Pines, NC",Montgomery County
+69239,18358,27212,zip,NC,NC,Blanch,,Caswell County
+69241,8120,27214,zip,NC,NC,Browns Summit,"Greensboro-High Point, NC",Guilford County
+69242,1231,27215,zip,NC,NC,Burlington,"Burlington, NC",Alamance County
+69244,2382,27217,zip,NC,NC,Burlington,"Burlington, NC",Alamance County
+69247,14297,27229,zip,NC,NC,Candor,,Montgomery County
+69249,18058,27231,zip,NC,NC,Cedar Grove,"Durham-Chapel Hill, NC",Orange County
