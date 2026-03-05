@@ -2,10 +2,11 @@
 """
 Replicate a data folder tree into a new folder, but only copy CSVs as "head" samples.
 
-Rules:
+Behavior:
+- If dst exists: DELETE it entirely, then recreate (true overwrite)
 - Replicate directory structure under src into dst
 - For each .csv file: create a copy with ALL columns but only first N rows (default 50)
-- Skip any file whose name contains ".tsv000" (e.g., zip_code_market_tracker.tsv000)
+- Skip any file whose name contains ".tsv000"
 - Skip all non-CSV files
 
 Usage:
@@ -15,7 +16,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import shutil
 from pathlib import Path
+
 import pandas as pd
 
 
@@ -45,6 +48,10 @@ def main() -> None:
     if not src_root.exists():
         raise FileNotFoundError(f"Source folder not found: {src_root}")
 
+    # True overwrite: wipe dst completely
+    if dst_root.exists():
+        shutil.rmtree(dst_root)
+
     dst_root.mkdir(parents=True, exist_ok=True)
 
     for src_path in src_root.rglob("*"):
@@ -64,13 +71,12 @@ def main() -> None:
 
         dst_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Read only first N rows and write out (keeps all columns automatically)
         df_head = pd.read_csv(src_path, nrows=args.rows, low_memory=False)
         df_head.to_csv(dst_path, index=False)
 
         print(f"Wrote sample: {dst_path}  (rows={len(df_head)})")
 
-    print(f"\nDone. Sample tree created at: {dst_root}")
+    print(f"\n✅ Done. Sample tree rebuilt at: {dst_root}")
 
 
 if __name__ == "__main__":
