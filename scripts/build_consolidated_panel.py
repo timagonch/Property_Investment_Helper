@@ -282,16 +282,16 @@ def main() -> None:
     PROCESSED = DATA_ROOT / "processed"
 
     # ---- input paths
-    ZIPS_PATH = RAW / "zillow" / "unique_zipcodes_nc_sc.csv"
+    ZIPS_PATH = RAW / "zillow" / "zip_universe_nc_sc.csv.csv"
 
-    ZORI_PATH = RAW / "zillow" / "Zip_zori_uc_sfrcondomfr_sm_sa_month.csv"
-    ZHVI_PATH = RAW / "zillow" / "Zip_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month (2).csv"
+    ZORI_PATH = RAW / "zillow" / "zillow_zori_zip_monthly.csv.csv"
+    ZHVI_PATH = RAW / "zillow" / "zillow_zhvi_zip_monthly.csv.csv"
 
-    PMMS_PATH = RAW / "mortgage_rate" / "PMMS_history.csv"
+    PMMS_PATH = RAW / "mortgage_rate" / "freddie_mac_pmms_weekly.csv"
 
     ACS_PATH = PROCESSED / "acs5_filtered_long_2013_2022.csv"
     CBP_PATH = PROCESSED / "cbp_zip_filtered_long_2018_2022.csv"
-    REDFIN_PATH = PROCESSED / "redfin_zip_nc_sc_long.csv"
+    REDFIN_PATH = PROCESSED / "redfin_market_tracker_zip_nc_sc_long.csv"
     SOI_DIR = RAW / "soi"
 
     out_path = (ROOT / args.out).resolve()
