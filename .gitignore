@@ -12,3 +12,4 @@ wheels/
 .env/
 
 data/
+COPILOT_README.md

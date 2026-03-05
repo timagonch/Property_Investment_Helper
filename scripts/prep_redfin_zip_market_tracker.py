@@ -21,8 +21,8 @@ def main():
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
 
     # Inputs (adjust filenames if needed)
-    REDFIN_PATH = DATA_RAW / "redfin" / "zip_code_market_tracker.tsv000"
-    ZILLOW_ZIPS_PATH = DATA_RAW / "zillow" / "unique_zipcodes_nc_sc.csv"
+    REDFIN_PATH = DATA_RAW / "redfin" / "redfin_zip_market_tracker_zip.tsv000"
+    ZILLOW_ZIPS_PATH = DATA_RAW / "zillow" / "zip_universe_nc_sc.csv"
 
     if not REDFIN_PATH.exists():
         raise FileNotFoundError(f"Missing Redfin file: {REDFIN_PATH}")
@@ -30,9 +30,9 @@ def main():
         raise FileNotFoundError(f"Missing Zillow ZIP universe file: {ZILLOW_ZIPS_PATH}")
 
     # Outputs
-    OUT_CSV = DATA_PROCESSED / "redfin_zip_nc_sc_long.csv"
-    OUT_REPORT = DATA_PROCESSED / "redfin_feature_report.csv"
-    OUT_NONMATCH_SAMPLE = DATA_PROCESSED / "redfin_region_nonmatch_sample.csv"
+    OUT_CSV = DATA_PROCESSED / "redfin_market_tracker_zip_nc_sc_long.csv"
+    OUT_REPORT = DATA_PROCESSED / "redfin_market_tracker_feature_report.csv"
+    OUT_NONMATCH_SAMPLE = DATA_PROCESSED / "redfin_market_tracker_region_nonmatch_sample.csv"
 
     # ----------------------------
     # Load Zillow ZIP universe

@@ -113,7 +113,7 @@ def main():
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
 
     # Inputs
-    ZILLOW_ZIPS_PATH = DATA_RAW / "zillow" / "unique_zipcodes_nc_sc.csv"
+    ZILLOW_ZIPS_PATH = DATA_RAW / "zillow" / "zip_universe_nc_sc.csv"
     if not ZILLOW_ZIPS_PATH.exists():
         raise FileNotFoundError(f"Missing Zillow ZIP universe: {ZILLOW_ZIPS_PATH}")
 
