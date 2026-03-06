@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -35,6 +36,37 @@ def should_skip_path(path: Path) -> bool:
     return any(s in name_lower for s in SKIP_NAME_CONTAINS)
 
 
+def clear_csv_outputs(dst_root: Path) -> None:
+    """Remove previously generated CSV samples but keep directory structure.
+
+    This is a lock-tolerant fallback for Windows when full tree deletion fails.
+    """
+    for p in dst_root.rglob("*.csv"):
+        try:
+            p.unlink()
+        except PermissionError:
+            # If a file is locked, we skip it and let the later write step raise a clear error.
+            continue
+
+
+def wipe_dst_with_retry(dst_root: Path, retries: int = 5, delay_sec: float = 0.6) -> None:
+    """Delete destination tree with retries; fallback to CSV-only cleanup on lock errors."""
+    for attempt in range(1, retries + 1):
+        try:
+            shutil.rmtree(dst_root)
+            return
+        except PermissionError:
+            if attempt < retries:
+                time.sleep(delay_sec)
+                continue
+            print(
+                "⚠️ Could not fully delete destination due to file lock(s). "
+                "Falling back to CSV-only cleanup in place."
+            )
+            clear_csv_outputs(dst_root)
+            return
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Create a sampled replica of a data folder tree (CSV head only).")
     parser.add_argument("--src", type=str, default="data", help="Source folder (default: data)")
@@ -48,9 +80,9 @@ def main() -> None:
     if not src_root.exists():
         raise FileNotFoundError(f"Source folder not found: {src_root}")
 
-    # True overwrite: wipe dst completely
+    # True overwrite: wipe dst completely (with lock-tolerant fallback on Windows)
     if dst_root.exists():
-        shutil.rmtree(dst_root)
+        wipe_dst_with_retry(dst_root)
 
     dst_root.mkdir(parents=True, exist_ok=True)
 
