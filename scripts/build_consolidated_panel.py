@@ -282,10 +282,10 @@ def main() -> None:
     PROCESSED = DATA_ROOT / "processed"
 
     # ---- input paths
-    ZIPS_PATH = RAW / "zillow" / "zip_universe_nc_sc.csv.csv"
+    ZIPS_PATH = RAW / "zillow" / "zip_universe_nc_sc.csv"
 
-    ZORI_PATH = RAW / "zillow" / "zillow_zori_zip_monthly.csv.csv"
-    ZHVI_PATH = RAW / "zillow" / "zillow_zhvi_zip_monthly.csv.csv"
+    ZORI_PATH = RAW / "zillow" / "zillow_zori_zip_monthly.csv"
+    ZHVI_PATH = RAW / "zillow" / "zillow_zhvi_zip_monthly.csv"
 
     PMMS_PATH = RAW / "mortgage_rate" / "freddie_mac_pmms_weekly.csv"
 
