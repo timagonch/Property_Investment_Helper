@@ -239,6 +239,14 @@ def load_features():
 
 
 @st.cache_data
+def load_city_lookup():
+    df = pd.read_csv(os.path.join(DATA, "zip_city_lookup.csv"))
+    df["zip"] = df["zip"].astype(str).str.zfill(5)
+    # Returns dict: zip -> "City, ST"
+    return {row["zip"]: f"{row['city']}, {row['State']}" for _, row in df.iterrows()}
+
+
+@st.cache_data
 def load_geojson():
     with open(os.path.join(GEO, "nc_sc_zips.geojson")) as f:
         return json.load(f)
@@ -305,6 +313,8 @@ def build_zip_summary(model: str = "winner"):
     zip_df["risk_pct"] = (zip_df["prob_transition"] * 100).round(1)
     zip_df["cluster_label"] = zip_df["cluster_name"].map(CLUSTER_LABELS)
     zip_df["state"] = zip_df["zip"].apply(_state_label)
+    cities = load_city_lookup()
+    zip_df["city"] = zip_df["zip"].map(cities).fillna("")
     return zip_df
 
 
@@ -334,6 +344,8 @@ def build_zip_multiclass_summary(model: str = "winner"):
     )
     zip_df["cluster_label"] = zip_df["cluster_name"].map(CLUSTER_LABELS)
     zip_df["state"] = zip_df["zip"].apply(_state_label)
+    cities = load_city_lookup()
+    zip_df["city"] = zip_df["zip"].map(cities).fillna("")
     return zip_df
 
 
@@ -762,12 +774,14 @@ def page_risk_map(states, clusters, threshold):
             hover_name="zip",
             hover_data={
                 "prob_transition": ":.1%",
+                "city": True,
                 "cluster_label": True,
                 "state": True,
                 "zip": False,
             },
             labels={
                 "prob_transition": "Opportunity score",
+                "city": "City",
                 "cluster_label": "Cluster",
                 "state": "State",
             },
@@ -787,10 +801,10 @@ def page_risk_map(states, clusters, threshold):
         if len(high_risk) > 0:
             st.subheader(f"High-Opportunity ZIPs (≥ {threshold}%)")
             table = (
-                high_risk[["zip", "risk_pct", "cluster_label", "state"]]
+                high_risk[["zip", "city", "risk_pct", "cluster_label", "state"]]
                 .sort_values("risk_pct", ascending=False)
                 .rename(columns={
-                    "zip": "ZIP", "risk_pct": "Opportunity Score (%)",
+                    "zip": "ZIP", "city": "City", "risk_pct": "Opportunity Score (%)",
                     "cluster_label": "Cluster", "state": "State",
                 })
             )
@@ -857,6 +871,7 @@ def page_risk_map(states, clusters, threshold):
                 "prob_up": ":.1%",
                 "prob_stable": ":.1%",
                 "prob_down": ":.1%",
+                "city": True,
                 "cluster_label": True,
                 "state": True,
                 "zip": False,
@@ -866,6 +881,7 @@ def page_risk_map(states, clusters, threshold):
                 "prob_up": "P(heating up)",
                 "prob_stable": "P(stable)",
                 "prob_down": "P(cooling down)",
+                "city": "City",
                 "cluster_label": "Cluster",
                 "state": "State",
             },
@@ -931,12 +947,13 @@ def page_archetypes(states, clusters, threshold):
         hover_name="zip",
         hover_data={
             "cluster_label": True,
+            "city": True,
             "state": True,
             "risk_pct": True,
             "zip": False,
             "cluster_name": False,
         },
-        labels={"cluster_label": "Archetype", "state": "State", "risk_pct": "Opportunity score (%)"},
+        labels={"cluster_label": "Archetype", "city": "City", "state": "State", "risk_pct": "Opportunity score (%)"},
     )
     fig.update_traces(marker_line_width=0.3, marker_line_color="white")
     fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
@@ -1016,7 +1033,8 @@ def page_zip_dive(states, clusters, threshold):
     selected_zip = st.selectbox(
         "Select ZIP code", available_zips,
         format_func=lambda z: (
-            f"{z} — {zip_df.loc[zip_df['zip']==z, 'cluster_label'].values[0]}  |  "
+            f"{z} — {zip_df.loc[zip_df['zip']==z, 'city'].values[0]}  |  "
+            f"{zip_df.loc[zip_df['zip']==z, 'cluster_label'].values[0]}  |  "
             f"Opportunity: {zip_df.loc[zip_df['zip']==z, 'risk_pct'].values[0]:.1f}%"
         )
     )
@@ -1027,7 +1045,7 @@ def page_zip_dive(states, clusters, threshold):
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("ZIP Code", selected_zip)
-    c2.metric("State", zip_info["state"])
+    c2.metric("City", zip_info["city"])
     c3.metric("Opportunity Score", f"{zip_info['risk_pct']:.1f}%")
     c4.metric("Cluster", CLUSTER_LABELS.get(cname, cname))
 
@@ -1177,7 +1195,7 @@ def page_zip_comparison(states, clusters, threshold):
         default=available_zips[:2],
         max_selections=4,
         format_func=lambda z: (
-            f"{z}  ·  "
+            f"{z} — {zip_df.loc[zip_df['zip']==z, 'city'].values[0]}  ·  "
             f"{CLUSTER_LABELS.get(zip_df.loc[zip_df['zip']==z, 'cluster_name'].values[0], '')}  ·  "
             f"{zip_df.loc[zip_df['zip']==z, 'risk_pct'].values[0]:.1f}%"
         ),
@@ -1211,7 +1229,8 @@ def page_zip_comparison(states, clusters, threshold):
                 border-top-color: {color};
             ">
                 <div style="font-size: 1.9rem; font-weight: 800; color: #212529; letter-spacing: -0.5px; line-height: 1;">{z}</div>
-                <div style="color: #6c757d; font-size: 0.78rem; margin: 0.25rem 0 0.9rem;">{info['state']} · {CLUSTER_LABELS.get(cname, cname)}</div>
+                <div style="color: #212529; font-size: 0.92rem; font-weight: 600; margin: 0.15rem 0 0.1rem;">{info['city']}</div>
+                <div style="color: #6c757d; font-size: 0.78rem; margin: 0 0 0.9rem;">{CLUSTER_LABELS.get(cname, cname)}</div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                     <div>
                         <div style="font-size: 0.65rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;">Opportunity</div>
@@ -1290,7 +1309,7 @@ def page_zip_comparison(states, clusters, threshold):
         mc_row  = mc_rows.iloc[0] if len(mc_rows) > 0 else None
         rows.append({
             "ZIP":              z,
-            "State":            info["state"],
+            "City":             info["city"],
             "Cluster":          CLUSTER_LABELS.get(info["cluster_name"], info["cluster_name"]),
             "Opportunity Score":f"{info['risk_pct']:.1f}%",
             "Net Direction":    f"{mc_row['net_direction']:+.3f}" if mc_row is not None else "—",
@@ -1616,6 +1635,8 @@ def page_forward_predictions(states, clusters, threshold):
     zip_fwd["risk_pct"]      = (zip_fwd["prob_transition"] * 100).round(1)
     zip_fwd["cluster_label"] = zip_fwd["cluster_name"].map(CLUSTER_LABELS)
     zip_fwd["state"]         = zip_fwd["zip"].apply(_state_label)
+    cities = load_city_lookup()
+    zip_fwd["city"]          = zip_fwd["zip"].map(cities).fillna("")
 
     zip_mc = (
         fwd_mc_p.groupby("zip")
@@ -1631,6 +1652,7 @@ def page_forward_predictions(states, clusters, threshold):
     )
     zip_mc["cluster_label"] = zip_mc["cluster_name"].map(CLUSTER_LABELS)
     zip_mc["state"]         = zip_mc["zip"].apply(_state_label)
+    zip_mc["city"]          = zip_mc["zip"].map(cities).fillna("")
 
     # Apply sidebar filters
     filtered_bin = zip_fwd[zip_fwd["state"].isin(states) & zip_fwd["cluster_name"].isin(clusters)]
@@ -1667,8 +1689,8 @@ def page_forward_predictions(states, clusters, threshold):
             ],
             range_color=(0, 1),
             hover_name="zip",
-            hover_data={"prob_transition": ":.1%", "cluster_label": True, "state": True, "zip": False},
-            labels={"prob_transition": "Opportunity score", "cluster_label": "Cluster", "state": "State"},
+            hover_data={"prob_transition": ":.1%", "city": True, "cluster_label": True, "state": True, "zip": False},
+            labels={"prob_transition": "Opportunity score", "city": "City", "cluster_label": "Cluster", "state": "State"},
         )
         fig.update_layout(
             coloraxis_colorbar=dict(title="Opportunity<br>Score", tickformat=".0%", len=0.6)
@@ -1686,11 +1708,11 @@ def page_forward_predictions(states, clusters, threshold):
             hover_name="zip",
             hover_data={
                 "net_direction": ":.3f", "prob_up": ":.1%",
-                "prob_down": ":.1%", "cluster_label": True, "state": True, "zip": False,
+                "prob_down": ":.1%", "city": True, "cluster_label": True, "state": True, "zip": False,
             },
             labels={
                 "net_direction": "Net direction", "prob_up": "P(heating)",
-                "prob_down": "P(cooling)", "cluster_label": "Cluster", "state": "State",
+                "prob_down": "P(cooling)", "city": "City", "cluster_label": "Cluster", "state": "State",
             },
         )
         fig.update_layout(
@@ -1716,10 +1738,10 @@ def page_forward_predictions(states, clusters, threshold):
         st.subheader(f"Top Opportunity ZIPs in 2024 (≥ {threshold}%)")
         top = (
             filtered_bin[filtered_bin["prob_transition"] >= threshold / 100]
-            [["zip", "risk_pct", "cluster_label", "state"]]
+            [["zip", "city", "risk_pct", "cluster_label", "state"]]
             .sort_values("risk_pct", ascending=False)
             .rename(columns={
-                "zip": "ZIP", "risk_pct": "Opportunity Score (%)",
+                "zip": "ZIP", "city": "City", "risk_pct": "Opportunity Score (%)",
                 "cluster_label": "Cluster", "state": "State",
             })
         )
