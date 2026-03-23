@@ -17,15 +17,17 @@ Results are delivered through an interactive Streamlit dashboard with choropleth
 
 ---
 
-## Demo
+## Live Demo
+
+**[https://huggingface.co/spaces/timagonch/nc-sc-market-monitor](https://huggingface.co/spaces/timagonch/nc-sc-market-monitor)**
+
+## Run Locally
 
 ```bash
 uv sync
+uv pip install shap   # install separately — cross-platform build conflict
 uv run streamlit run app.py
 ```
-
-> **Note:** `shap` must be installed separately due to a cross-platform dependency conflict:
-> `uv pip install shap`
 
 The app has two modes selectable from the sidebar:
 
