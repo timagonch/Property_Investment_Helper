@@ -12,4 +12,10 @@ wheels/
 .env/
 
 data/
+!data/geo/
+!data/geo/**
+data/geo/*.zip
 COPILOT_README.md
+
+# claude
+claude/

@@ -1,304 +1,182 @@
-# Property Investment Helper
+# NC/SC Neighborhood Market Transition — Early-Warning System
 
-An early-warning analytics project for identifying ZIP codes that may be entering a neighborhood transition phase.
-
-This repository is being built as a **data-driven business intelligence and predictive modeling project** focused on North Carolina and South Carolina ZIP codes. The current goal is to combine housing-market signals with demographic, business, tax, and mortgage-rate context to answer a practical question:
-
-> Which ZIP codes are showing early warning signs of neighborhood transition, and which ones are most likely to continue changing over the next 12 months?
+A Business Intelligence group project (Spring 2026) that identifies ZIP codes in **North Carolina and South Carolina** showing early signs of neighborhood transition and predicts the direction of change over the next 12 months.
 
 ---
 
-## Project status
+## What it does
 
-**Work in progress.**
+The system answers four questions for **655 NC/SC ZIP codes**:
 
-The project foundation is already in place:
-- raw Zillow sample data is in the repo
-- scripts are being developed for data ingestion and processing
-- the integrated modeling dataset has already been narrowed to a high-quality final ZIP universe
-- the modeling and reporting layer is still being built
+1. Which ZIPs are showing the strongest signals of emerging transition pressure?
+2. Are there distinct neighborhood market tendencies across the region?
+3. Will a ZIP enter an upward or downward transition within the next 12 months?
+4. Which leading indicators drive that prediction most?
 
-This README is meant to document the project direction, current structure, and next steps so the repo stays organized as development continues.
-
----
-
-## Problem statement
-
-Neighborhood change usually does not happen all at once. It tends to appear through a combination of signals such as:
-- rising home values
-- stronger sale prices
-- lower inventory
-- faster sales
-- higher sale-to-list ratios
-- improving local income or employment context
-
-Rather than trying to claim a perfect prediction of "gentrification," this project frames the task as a **short-horizon early-warning problem**.
-
-The main idea is to use historical ZIP-level data to:
-1. identify neighborhoods currently under market pressure,
-2. group ZIP codes into meaningful change patterns,
-3. predict whether a ZIP is likely to enter a **transition-like state in the next 12 months**.
+Results are delivered through an interactive Streamlit dashboard with choropleth maps, cluster profiles, ZIP-level time series, SHAP explanations, and model performance summaries.
 
 ---
 
-## Main objectives
+## Demo
 
-The project is built around four core objectives:
+```bash
+uv sync
+uv run streamlit run app.py
+```
 
-### 1. Build an integrated ZIP-month modeling table
-Combine monthly and annual public datasets into one reproducible panel dataset for NC/SC ZIP codes.
+> **Note:** `shap` must be installed separately due to a cross-platform dependency conflict:
+> `uv pip install shap`
 
-### 2. Engineer leading indicators of neighborhood transition
-Create trend, momentum, affordability, and market-competition features that can act as early warning signals.
+The app has two modes selectable from the sidebar:
 
-### 3. Discover neighborhood change typologies
-Use unsupervised learning to group ZIP codes into interpretable categories based on their multi-year trajectories.
+**Investor mode** (default):
 
-### 4. Predict near-term transition risk
-Use supervised learning to estimate whether a ZIP is likely to transition within the next 12 months.
+| Page | Description |
+|---|---|
+| **Home** | Project overview, methodology summary, and navigation guide |
+| **2024 Signal** | Forward-looking predictions for 2024 — unverified, use for prospecting |
+| **Archetypes** | Map colored by cluster archetype with profile cards |
+| **Compare** | Side-by-side comparison of 2–4 ZIPs |
+| **Deep Dive** | Select any ZIP — monthly opportunity score, feature trends vs. cluster average, SHAP waterfall |
+
+**Educator mode** (adds methodology pages):
+
+| Page | Description |
+|---|---|
+| **Validated Map** | 2023 test-set choropleth — opportunity score or net market direction |
+| **Model Comparison** | V3 (all sources) vs. Monthly-Only head-to-head with side-by-side maps |
+| **Performance** | Walk-forward fold metrics, version history, top-15 features by mean \|SHAP\| |
 
 ---
 
 ## Data sources
 
-The current project design uses six primary sources:
+| Source | Coverage | What it provides |
+|---|---|---|
+| **Zillow Research** | Monthly | Home Value Index (ZHVI) by ZIP |
+| **Redfin Market Tracker** | Monthly | Sale/list price, inventory, days on market, sale-to-list ratio, homes sold, off-market speed |
+| **ACS 5-year estimates** | Annual | Median income, rent, home value, owner occupancy (used in V3; dropped from winning model) |
+| **County Business Patterns** | Annual | Establishments, employment, payroll (used in V3; dropped from winning model) |
+| **IRS Statistics of Income** | Annual | ZIP-level income and tax indicators (used in V3; dropped from winning model) |
+| **Freddie Mac PMMS** | Monthly | Mortgage rates (excluded — national signal with zero cross-ZIP variance per month) |
 
-### 1. Zillow Research Data
-Used for:
-- ZIP-level home value trends
-- the NC/SC ZIP universe reference table
-
-### 2. Redfin Market Tracker
-Used for monthly housing-market activity and competitiveness measures such as:
-- median sale price
-- median list price
-- median price per square foot
-- homes sold
-- pending sales
-- new listings
-- inventory
-- median days on market
-- average sale-to-list ratio
-- sold above list share
-- off-market-in-two-weeks share
-
-### 3. American Community Survey (ACS) 5-year estimates
-Used for annual ZIP-level demographic and housing context such as:
-- median household income
-- median gross rent
-- median owner-occupied home value
-- owner occupancy rate
-
-### 4. County Business Patterns (CBP)
-Used for annual business and employment structure such as:
-- establishments
-- employment
-- annual payroll
-- first-quarter payroll
-- derived pay-per-employee measures
-
-### 5. IRS Statistics of Income (SOI) ZIP code data
-Used for annual ZIP-level income and tax-return indicators.
-
-### 6. Freddie Mac Primary Mortgage Market Survey (PMMS)
-Used for mortgage-rate context and market-wide financing conditions.
+**Final analytic dataset:** 655 ZIPs · Jun 2019–Dec 2022 (features) · Jun 2019–Dec 2021 (labeled) · 2024 forward signal
 
 ---
 
-## Current data scope
+## Methodology
 
-The working project scope is currently:
-- **Geography:** North Carolina and South Carolina ZIP codes
-- **Final analytic ZIP universe:** 540 ZIPs
-- **Time span:** January 2018 through December 2022
-- **Time grain:** monthly panel structure
+### 1. Target engineering
+Two supervised targets are engineered from a composite transition score — z-scored deltas of home value growth, inventory tightening, and market competitiveness over the forward 12-month window vs. each ZIP's own trailing baseline:
 
-This final filtered sample is intentionally smaller than the original ZIP universe because the project keeps only ZIPs with enough usable coverage across the selected data sources to support modeling and comparison.
+- `transition_next_12m` (binary): 1 = upward transition (composite score ≥ p75)
+- `transition_direction` (3-class): +1 up / 0 stable / −1 down
 
----
+Class split: 25% up / 50% stable / 25% down.
 
-## Target variable
+### 2. Clustering (unsupervised)
+K-means (k=5) on 22 ZIP-level features (16 means + 6 trend slopes) identifies five neighborhood market tendencies. These are **overlapping archetypes on a spectrum**, not hard mutually-exclusive categories (silhouette = 0.11). Cluster labels are static — they represent a ZIP's long-run market character, separate from short-term directional predictions.
 
-The main supervised target is planned as:
+| Archetype | ZIPs | Character |
+|---|---|---|
+| 💎 High-Value Appreciating | 108 | Highest median values (~$376K), steady 12.2% YoY appreciation, slower transaction pace |
+| 🧊 Low-Activity, Cooling | 85 | Lowest values (~$181K), weakest and decelerating appreciation, low competition |
+| 🔥 Competitive Mid-Market | 195 | Mid-to-high values (~$338K), highest above-list rate (35.4%), tightening inventory |
+| ⚡ Affordable, High Demand | 183 | Entry-level (~$218K), fastest DOM (48 days), highest off-market rate (45.5%) |
+| 📦 Moderate Value, Supply Growing | 84 | Mid-range (~$208K), fastest inventory growth (+6.5% MoM), softening signals |
 
-### `transition_next_12m`
-A binary label indicating whether a ZIP shows a **transition-like pattern over the following 12 months**.
+### 3. Supervised modeling
+Walk-forward validation only — no random splits on time-ordered panel data:
 
-This target is not taken directly from a raw dataset. It is **engineered** from future observed behavior using a composite of history-based signals such as:
-- sustained home-value growth relative to the ZIP's own recent history
-- sustained sale-price growth relative to the ZIP's own recent history
-- tightening inventory or shorter time on market
-- stronger sale-to-list behavior or related market pressure indicators
+| Fold | Train | Test | AUC |
+|---|---|---|---|
+| A | Jun 2019–Dec 2020 | Jan–Dec 2021 | 0.8443 |
+| B | Jun 2019–Dec 2021 | Jan–Dec 2022 | 0.8153 |
+| C (primary) | Jun 2019–Dec 2022 | Jan–Dec 2023 | **0.8652** |
 
-This makes the problem more realistic and more defensible than pretending there is a perfect pre-labeled "transition" column.
+Two models were evaluated:
 
----
+| Model | Features | Test year | AUC | Macro F1 |
+|---|---|---|---|---|
+| V3 (All Sources) | 39 (Zillow + Redfin + ACS + CBP + IRS) | 2021 | 0.8519 | 0.5076 |
+| **Monthly-Only** ✓ | **18 (Zillow + Redfin only)** | **2023** | **0.8652** | **0.3838** |
 
-## Planned methodology
+The monthly-only model wins on AUC. Removing the 17 annual features (ranked #12–#27 in permutation importance) forced RFECV to find better monthly substitutes and eliminated data-lag noise. It also enables future extension to Redfin data back to 2012 (4× more training data) and can be updated whenever new Redfin/Zillow data is available.
 
-### 1. Data integration and preparation
-The pipeline will:
-- standardize ZIP identifiers and dates
-- align monthly housing data with annual socioeconomic and business indicators
-- create a clean ZIP-month panel for analysis
+### 4. Key features (RFECV-selected, monthly-only model)
+All 18 features are Zillow and Redfin monthly signals — home value momentum, inventory dynamics, and sales activity. No demographic or business data survived selection.
 
-### 2. Feature engineering
-Existing and planned feature families include:
-- month-over-month and year-over-year growth rates
-- rolling averages and rolling volatility
-- trend acceleration measures
-- affordability pressure ratios
-- inventory tightening indicators
-- competitiveness indicators
-- relative change versus each ZIP's own history
+| Feature | What it captures |
+|---|---|
+| `home_value_mom_pct` | Month-over-month % change in home value — strongest single signal |
+| `home_value_vs_baseline_lag6` | Price level vs. ZIP's own 6-month-lagged norm — sustained divergence |
+| `home_value_accel` | Acceleration of price growth — detects momentum shifts early |
+| `inventory_mom_12m_avg` | 12-month average inventory trend — sustained tightening = strong signal |
+| `pct_sold_above_list_lag6` | Lagged demand heat — were homes recently selling above asking? |
 
-### 3. Unsupervised learning
-Unsupervised methods will be used to identify **types of neighborhood change**, not just predict outcomes.
-
-Planned use:
-- cluster ZIPs by multi-year trend summaries
-- identify neighborhood archetypes
-- compare stable, emerging, fast-heating, or cooling ZIP patterns
-
-Candidate methods:
-- K-means
-- hierarchical clustering
-- possibly PCA/UMAP for visualization
-
-### 4. Supervised learning
-Supervised models will be used to predict `transition_next_12m`.
-
-Planned model path:
-- logistic regression baseline
-- random forest
-- gradient boosting / XGBoost style model if appropriate
-
-### 5. Time-aware validation
-Because this is a time-based panel dataset, the project will **not** use a random row split.
-
-Instead, it will use **walk-forward validation**, for example:
-- train on earlier years
-- validate on the next year
-- test on the final year
-
-This is important to avoid leakage from the future into the past.
+### 5. Forward predictions (2024)
+The validated monthly-only model is applied to December 2024 Zillow and Redfin features to generate a forward-looking signal. These predictions are **unverified** — whether the transitions actually occurred will not be confirmable until late 2025. Use for prospecting and early positioning.
 
 ---
 
 ## Repository structure
 
-Current repo structure:
-
-```text
-Property_Investment_Helper/
-├── data_samples/
-│   └── raw/
-│       └── zillow/
-├── scripts/
-├── README.md
-├── pyproject.toml
-└── uv.lock
 ```
-
-Planned structure as the project grows:
-
-```text
 Property_Investment_Helper/
-├── data/
-│   ├── raw/
-│   ├── interim/
-│   └── processed/
-├── data_samples/
-│   └── raw/
-│       └── zillow/
+├── app.py                              # Streamlit dashboard (8 pages, investor + educator modes)
 ├── notebooks/
+│   ├── exploration.ipynb               # Data quality audit and ZIP coverage filter
+│   ├── data_prep_and_eda.ipynb         # Consolidation, EDA, modeling-ready dataset
+│   ├── feature_engineering.ipynb       # Lag features, rolling averages, baseline deltas
+│   ├── target_engineering.ipynb        # Composite transition score + binary/3-class targets
+│   ├── clustering.ipynb                # K-means neighborhood archetypes (k=5)
+│   └── modeling.ipynb                  # Walk-forward GB models, RFECV, SHAP
 ├── scripts/
-│   ├── pull/
-│   ├── process/
-│   ├── features/
-│   └── modeling/
-├── outputs/
-│   ├── figures/
-│   ├── tables/
-│   └── maps/
-├── README.md
+│   ├── run_monthly_model.py            # Monthly-only model training + model_comparison.json
+│   ├── generate_forward_predictions.py # 2024 forward signal generation
+│   └── ...                             # Data ingestion scripts
+├── data/
+│   ├── processed/                      # Modeling datasets and predictions (not committed — see data_samples/)
+│   └── geo/                            # GeoJSON boundaries for 655 NC/SC ZIPs and state outlines
+├── data_samples/                       # 50-row samples of all processed files for reference
 ├── pyproject.toml
-└── uv.lock
+├── uv.lock
+└── CLAUDE.md                           # Project context for Claude Code
 ```
 
 ---
 
-## Example outputs
+## Setup
 
-Planned outputs include:
-- a clean integrated modeling table at the ZIP-month level
-- a transition risk score or probability for each ZIP
-- neighborhood typology clusters
-- feature importance summaries
-- charts and maps showing where pressure is rising
-- a final report or dashboard for interpretation
-
----
-
-## Why this project matters
-
-This project is meant to be useful for more than just a class grade.
-
-A system like this could help:
-- investors identify emerging areas earlier
-- analysts compare neighborhood trajectories more systematically
-- planners monitor housing pressure and market shifts
-- decision-makers build watchlists rather than rely on guesswork
-
-It also creates a strong real-world analytics portfolio piece because it combines:
-- multi-source data integration
-- panel/time-based feature engineering
-- unsupervised learning
-- supervised modeling
-- business interpretation
-
----
-
-## Current limitations
-
-This project still has important limitations:
-- ZIP code analysis is aggregated and does not capture block-level variation
-- transition is a constructed proxy, not a perfect ground-truth label
-- annual public indicators may lag fast local change
-- results should be interpreted as early warning signals, not causal proof
-
----
-
-## Next steps
-
-Planned next development steps:
-- finalize the processed modeling dataset
-- define the exact target engineering rules for `transition_next_12m`
-- build the clustering pipeline
-- train the first baseline predictive models
-- evaluate with walk-forward validation
-- generate maps, tables, and model interpretation outputs
-
----
-
-## Getting started
-
-This section will be expanded as the repo matures. A likely workflow will look like:
+Requires Python 3.12. Uses `uv` for dependency management.
 
 ```bash
+# Install dependencies
 uv sync
-uv run python scripts/<your_script>.py
-```
 
-As the project is cleaned up, this README will be updated with:
-- exact setup instructions
-- data pipeline order
-- script entry points
-- model training steps
-- reproducibility notes
+# Install shap separately (cross-platform build conflict prevents uv add)
+uv pip install shap
+
+# Run the dashboard
+uv run streamlit run app.py
+
+# Re-execute a notebook
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/<name>.ipynb --ExecutePreprocessor.timeout=600
+```
 
 ---
 
-## Notes
+## Limitations
 
-This repository is under active development. Some file paths, scripts, and outputs will change as the project moves from data assembly to modeling and reporting.
+- ZIP code analysis is aggregated — does not capture block-level variation within a ZIP
+- Transition labels are engineered proxies, not pre-labeled ground truth
+- Neighborhood archetypes (clusters) are tendencies on a spectrum, not hard categories — silhouette score of 0.11 reflects that real estate markets don't fall into discrete buckets
+- The 2022 AUC dip (0.815) is expected — the Fed rate-hike cycle created abrupt market conditions outside the 2019–2021 training distribution; the 2023 recovery (0.865) shows the model captures durable signals, not COVID-era noise
+- 2024 predictions are unverified forward signals — outcomes not confirmable until late 2025
+- Results should be interpreted as **probabilistic early-warning signals**, not causal proof of neighborhood change
+
+---
+
+## Why this framing matters
+
+We deliberately avoid calling the upward transition probability a "risk score." In finance, *risk* implies downside. A high opportunity score means a neighborhood is likely to heat up — which is a **buy signal** for investors, not a warning. The directional model separates the two: the blue end of the direction map represents genuine cooling risk; the red end represents opportunity.
