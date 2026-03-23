@@ -929,7 +929,7 @@ def page_risk_map(states, clusters, threshold):
 def page_archetypes(states, clusters, threshold):
     page_header(
         "🏘️", "Neighborhood Archetypes",
-        "K-means clustering on 22 market features · 5 distinct market types across 655 ZIPs",
+        "K-means clustering on 22 market features · 5 market tendencies across 655 ZIPs",
         accent="#2a9d8f",
     )
 
@@ -1010,6 +1010,22 @@ def page_archetypes(states, clusters, threshold):
                     """,
                     unsafe_allow_html=True,
                 )
+
+    st.markdown(
+        """
+        <div style="margin-top:1.8rem; padding:1rem 1.2rem; background:#f8f9fa;
+                    border-left:4px solid #2a9d8f; border-radius:6px; font-size:0.84rem; color:#495057; line-height:1.7;">
+            <strong>📊 How to read these archetypes</strong><br>
+            These five groups were identified by K-means clustering on 22 market features (silhouette score = 0.11),
+            which reflects that real estate markets exist on a <em>spectrum</em> rather than falling into hard buckets.
+            Think of each archetype as a <strong>market tendency</strong>, not a rigid category — a ZIP near a boundary
+            shares characteristics of both neighbors. Cluster assignments are <strong>static long-run labels</strong>
+            representing a ZIP's baseline market character; the <em>directional prediction</em> (opportunity score) is a
+            separate, time-varying signal.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # ── Page 3: ZIP Deep Dive ────────────────────────────────────────────────────────
