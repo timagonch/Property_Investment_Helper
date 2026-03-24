@@ -1,3 +1,16 @@
+---
+title: NC/SC Neighborhood Market Transition Monitor
+emoji: 🏘️
+colorFrom: red
+colorTo: blue
+sdk: streamlit
+sdk_version: "1.41.0"
+python_version: "3.12"
+app_file: app.py
+pinned: false
+short_description: ZIP-level real estate early-warning system for NC and SC
+---
+
 # NC/SC Neighborhood Market Transition — Early-Warning System
 
 A Business Intelligence group project (Spring 2026) that identifies ZIP codes in **North Carolina and South Carolina** showing early signs of neighborhood transition and predicts the direction of change over the next 12 months.
