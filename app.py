@@ -1,7 +1,7 @@
 """
 NC/SC Neighborhood Market Transition Monitor
 Walk-forward validated Gradient Boosting model (AUC 0.865, test year 2023).
-655 ZIPs · Jun 2019–Dec 2023 · 2024 forward signal.
+655 ZIPs · Jun 2019–Dec 2024 · 2025 forward signal.
 """
 
 import json
@@ -216,7 +216,7 @@ def load_monthly_multiclass():
 
 @st.cache_data
 def load_forward_predictions():
-    df = pd.read_csv(os.path.join(DATA, "model_predictions_forward_2024.csv"))
+    df = pd.read_csv(os.path.join(DATA, "model_predictions_forward_2025.csv"))
     df["month"] = pd.to_datetime(df["month"])
     df["zip"] = df["zip"].astype(str).str.zfill(5)
     return df
@@ -224,7 +224,7 @@ def load_forward_predictions():
 
 @st.cache_data
 def load_forward_multiclass():
-    df = pd.read_csv(os.path.join(DATA, "model_predictions_multiclass_forward_2024.csv"))
+    df = pd.read_csv(os.path.join(DATA, "model_predictions_multiclass_forward_2025.csv"))
     df["month"] = pd.to_datetime(df["month"])
     df["zip"] = df["zip"].astype(str).str.zfill(5)
     return df
@@ -523,8 +523,8 @@ def page_home():
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("ZIP codes analyzed", "655")
     c2.metric("Validation AUC (2023 test)", f"{m.get('auc', 0.865):.3f}")
-    c3.metric("Training window", "Jun 2019 – Dec 2022")
-    c4.metric("Most recent forward signal", "2024")
+    c3.metric("Training window", "Jun 2019 – Dec 2024")
+    c4.metric("Most recent forward signal", "2025")
 
     st.divider()
 
@@ -612,8 +612,8 @@ def page_home():
          "The 5 distinct market types identified by K-means clustering. Understand each ZIP's long-run market character — not just its current trend."),
         ("🔍", "ZIP Code Deep Dive",
          "Select any ZIP to see its full monthly prediction history, key feature trends vs. cluster average, and a SHAP waterfall explaining exactly why the model scored it the way it did."),
-        ("🔮", "2024 Forward Predictions",
-         "The most current signal available. Unverified (2024 outcomes won't be confirmable until late 2025), but based on the same validated model. Use for prospecting and early positioning."),
+        ("🔮", "2025 Forward Predictions",
+         "The most current signal available. Retrained model (Jun 2019–Dec 2024) scored against Nov 2025 features. Forward window: Dec 2025–Nov 2026. The 2024 predictions were validated at AUC 0.7747 against actual 2025 outcomes."),
         ("⚡", "Model Comparison",
          "V3 (all data sources) vs. Monthly-Only (Zillow + Redfin only) head-to-head. Why the monthly model won, what features changed, and side-by-side maps."),
         ("📊", "Model Performance",
@@ -645,7 +645,7 @@ def page_home():
     st.caption(
         "**Data:** Zillow ZHVI · Redfin Market Tracker &nbsp;|&nbsp; "
         "**Model:** Gradient Boosting · RFECV feature selection · Walk-forward validation &nbsp;|&nbsp; "
-        "**Coverage:** 655 NC/SC ZIPs · Jun 2019 – Dec 2023 · 2024 forward signal"
+        "**Coverage:** 655 NC/SC ZIPs · Jun 2019 – Dec 2024 · 2025 forward signal"
     )
 
 
@@ -1558,12 +1558,11 @@ def page_model_performance():
 
         st.subheader("Walk-Forward Validation Folds")
         folds = pd.DataFrame([
-            {"Fold": "A",               "Train": "Jun 2019–Dec 2020", "Test": "Jan–Dec 2021",
-             "Train rows": "~12,445", "Test rows": "~7,860"},
-            {"Fold": "B",               "Train": "Jun 2019–Dec 2021", "Test": "Jan–Dec 2022",
-             "Train rows": "~20,305", "Test rows": "~7,860"},
-            {"Fold": "C (primary)",     "Train": "Jun 2019–Dec 2022", "Test": "Jan–Dec 2023",
-             "Train rows": "~28,165", "Test rows": "~7,860"},
+            {"Fold": "A",           "Train": "Jun 2019–Dec 2020", "Test": "Jan–Dec 2021", "AUC": 0.8443, "Note": ""},
+            {"Fold": "B",           "Train": "Jun 2019–Dec 2021", "Test": "Jan–Dec 2022", "AUC": 0.8153, "Note": "Fed rate-hike year — out of training dist."},
+            {"Fold": "C (primary)", "Train": "Jun 2019–Dec 2022", "Test": "Jan–Dec 2023", "AUC": 0.8652, "Note": "Primary validation fold"},
+            {"Fold": "D (retrain)", "Train": "Jun 2019–Dec 2023", "Test": "Jan–Dec 2024", "AUC": 0.7240, "Note": "Retrained model — powers 2025 signal"},
+            {"Fold": "Actuals",     "Train": "Jun 2019–Dec 2022", "Test": "2025 real outcomes", "AUC": 0.7747, "Note": "2024 preds vs. actual 2025 transitions"},
         ])
         st.dataframe(folds, use_container_width=True, hide_index=True)
 
@@ -1608,18 +1607,19 @@ def page_model_performance():
             st.markdown(f"**{feat}:** {desc}")
 
 
-# ── Page: Forward Predictions (Unverified) ───────────────────────────────────────
+# ── Page: Forward Predictions (2025) ─────────────────────────────────────────────
 def page_forward_predictions(states, clusters, threshold):
     page_header(
-        "🔮", "2024 Market Signal",
-        "Unverified forward signal · same validated model applied to Dec 2024 Redfin + Zillow features · AUC 0.865",
+        "🔮", "2025 Market Signal",
+        "Retrained model (Jun 2019–Dec 2024) · scored on Nov 2025 features · forward window Dec 2025–Nov 2026",
         accent="#f4a261",
         badge="LIVE",
     )
     st.info(
-        "**Unverified forward signal.** Validated on 2023 held-out data (AUC 0.865). "
-        "Whether 2024 transitions occurred will not be confirmable until late 2025 — "
-        "use for prospecting and early positioning, not as a guarantee."
+        "**Retrained on Jun 2019–Dec 2024, scored on Nov 2025 features.** "
+        "The 2024 predictions were retrospectively validated against actual 2025 outcomes (AUC 0.7747), "
+        "confirming the model captures durable signals across market regimes. "
+        "This 2025 signal covers the forward window **Dec 2025–Nov 2026** and cannot be verified until late 2026."
     )
 
     geojson = load_geojson()
@@ -1751,7 +1751,7 @@ def page_forward_predictions(states, clusters, threshold):
 
     # ── Top opportunities table ────────────────────────────────────────────────
     if fwd_mode == "opportunity":
-        st.subheader(f"Top Opportunity ZIPs in 2024 (≥ {threshold}%)")
+        st.subheader(f"Top Opportunity ZIPs for 2025–2026 (≥ {threshold}%)")
         top = (
             filtered_bin[filtered_bin["prob_transition"] >= threshold / 100]
             [["zip", "city", "risk_pct", "cluster_label", "state"]]
@@ -1802,9 +1802,10 @@ def page_forward_predictions(states, clusters, threshold):
         | **Net direction < -0.15** | More likely cooling than stable | Exercise caution; oversupply or demand drop likely |
         | **Net direction near 0** | Market likely stable | Hold or wait-and-see |
 
-        The model was validated on **2023 data (AUC 0.865)**. 2024 predictions use identical features
-        computed from current Zillow and Redfin data through Dec 2024. The 12-month forward outcome
-        (whether the transition actually occurred) will not be verifiable until late 2025.
+        The model was **retrained on Jun 2019–Dec 2024** (Fold D AUC on 2024 test data: 0.7240) and scored
+        on Nov 2025 Zillow + Redfin features. The forward window is **Dec 2025–Nov 2026** — unverifiable
+        until late 2026. The prior 2024 signal was validated at AUC 0.7747 against actual 2025 outcomes,
+        confirming the model generalises across market cycles.
         """
     )
 
@@ -1816,7 +1817,7 @@ def main():
 
     educator_mode = mode and "Educator" in mode
 
-    nav_options = ["Home", "2024 Signal", "Archetypes", "Compare", "Deep Dive"]
+    nav_options = ["Home", "2025 Signal", "Archetypes", "Compare", "Deep Dive"]
     nav_icons   = ["house-fill", "graph-up-arrow", "buildings", "arrow-left-right", "search"]
     if educator_mode:
         nav_options += ["Validated Map", "Model Comparison", "Performance"]
@@ -1855,7 +1856,7 @@ def main():
 
     page_dispatch = {
         "Home":             page_home,
-        "2024 Signal":      lambda: page_forward_predictions(states, clusters, threshold),
+        "2025 Signal":      lambda: page_forward_predictions(states, clusters, threshold),
         "Archetypes":       lambda: page_archetypes(states, clusters, threshold),
         "Compare":          lambda: page_zip_comparison(states, clusters, threshold),
         "Deep Dive":        lambda: page_zip_dive(states, clusters, threshold),

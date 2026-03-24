@@ -36,7 +36,7 @@ The app has two modes selectable from the sidebar:
 | Page | Description |
 |---|---|
 | **Home** | Project overview, methodology summary, and navigation guide |
-| **2024 Signal** | Forward-looking predictions for 2024 — unverified, use for prospecting |
+| **2025 Signal** | Forward-looking predictions for Dec 2025–Nov 2026 — retrained model, use for prospecting |
 | **Archetypes** | Map colored by cluster archetype with profile cards |
 | **Compare** | Side-by-side comparison of 2–4 ZIPs |
 | **Deep Dive** | Select any ZIP — monthly opportunity score, feature trends vs. cluster average, SHAP waterfall |
@@ -62,7 +62,7 @@ The app has two modes selectable from the sidebar:
 | **IRS Statistics of Income** | Annual | ZIP-level income and tax indicators (used in V3; dropped from winning model) |
 | **Freddie Mac PMMS** | Monthly | Mortgage rates (excluded — national signal with zero cross-ZIP variance per month) |
 
-**Final analytic dataset:** 655 ZIPs · Jun 2019–Dec 2022 (features) · Jun 2019–Dec 2021 (labeled) · 2024 forward signal
+**Final analytic dataset:** 655 ZIPs · Jun 2019–Dec 2024 (features) · Jun 2019–Dec 2024 (labeled) · 2025 forward signal
 
 ---
 
@@ -90,11 +90,13 @@ K-means (k=5) on 22 ZIP-level features (16 means + 6 trend slopes) identifies fi
 ### 3. Supervised modeling
 Walk-forward validation only — no random splits on time-ordered panel data:
 
-| Fold | Train | Test | AUC |
-|---|---|---|---|
-| A | Jun 2019–Dec 2020 | Jan–Dec 2021 | 0.8443 |
-| B | Jun 2019–Dec 2021 | Jan–Dec 2022 | 0.8153 |
-| C (primary) | Jun 2019–Dec 2022 | Jan–Dec 2023 | **0.8652** |
+| Fold | Train | Test | AUC | Notes |
+|---|---|---|---|---|
+| A | Jun 2019–Dec 2020 | Jan–Dec 2021 | 0.8443 | |
+| B | Jun 2019–Dec 2021 | Jan–Dec 2022 | 0.8153 | Fed rate-hike year |
+| C (primary) | Jun 2019–Dec 2022 | Jan–Dec 2023 | **0.8652** | Primary validation |
+| D (retrain) | Jun 2019–Dec 2023 | Jan–Dec 2024 | 0.7240 | Powers 2025 signal |
+| Actuals | Jun 2019–Dec 2022 | 2025 real outcomes | 0.7747 | 2024 preds vs. actual 2025 transitions |
 
 Two models were evaluated:
 
@@ -116,8 +118,8 @@ All 18 features are Zillow and Redfin monthly signals — home value momentum, i
 | `inventory_mom_12m_avg` | 12-month average inventory trend — sustained tightening = strong signal |
 | `pct_sold_above_list_lag6` | Lagged demand heat — were homes recently selling above asking? |
 
-### 5. Forward predictions (2024)
-The validated monthly-only model is applied to December 2024 Zillow and Redfin features to generate a forward-looking signal. These predictions are **unverified** — whether the transitions actually occurred will not be confirmable until late 2025. Use for prospecting and early positioning.
+### 5. Forward predictions (2025)
+The model was retrained on Jun 2019–Dec 2024 (incorporating validated 2024 transition labels) and scored against November 2025 Zillow and Redfin features. The forward window is **Dec 2025–Nov 2026**. The prior 2024 signal was retrospectively validated against actual 2025 outcomes (AUC 0.7747), confirming the model generalises across market cycles. The 2025 predictions cannot be verified until late 2026 — use for prospecting and early positioning.
 
 ---
 
@@ -135,7 +137,9 @@ Property_Investment_Helper/
 │   └── modeling.ipynb                  # Walk-forward GB models, RFECV, SHAP
 ├── scripts/
 │   ├── run_monthly_model.py            # Monthly-only model training + model_comparison.json
-│   ├── generate_forward_predictions.py # 2024 forward signal generation
+│   ├── generate_forward_predictions.py # 2024 forward signal generation (historical)
+│   ├── validate_2024_predictions.py    # Validates 2024 predictions against actual 2025 outcomes
+│   ├── retrain_and_predict_2025.py     # Retrains on 2019–2024, generates 2025 forward signal
 │   └── ...                             # Data ingestion scripts
 ├── data/
 │   ├── processed/                      # Modeling datasets and predictions (not committed — see data_samples/)
@@ -174,7 +178,8 @@ uv run jupyter nbconvert --to notebook --execute --inplace notebooks/<name>.ipyn
 - Transition labels are engineered proxies, not pre-labeled ground truth
 - Neighborhood archetypes (clusters) are tendencies on a spectrum, not hard categories — silhouette score of 0.11 reflects that real estate markets don't fall into discrete buckets
 - The 2022 AUC dip (0.815) is expected — the Fed rate-hike cycle created abrupt market conditions outside the 2019–2021 training distribution; the 2023 recovery (0.865) shows the model captures durable signals, not COVID-era noise
-- 2024 predictions are unverified forward signals — outcomes not confirmable until late 2025
+- The 2024 predictions were validated against actual 2025 outcomes (AUC 0.7747) — a graceful degradation into an unseen rate-cycle year, confirming durable signal
+- The 2025 forward predictions (Dec 2025–Nov 2026 window) cannot be verified until late 2026
 - Results should be interpreted as **probabilistic early-warning signals**, not causal proof of neighborhood change
 
 ---

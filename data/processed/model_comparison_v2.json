@@ -1,0 +1,71 @@
+{
+  "v3": {
+    "label": "V3 (All Sources, test 2021)",
+    "n_features": 39,
+    "auc": 0.8519,
+    "f1": 0.5076,
+    "test_year": 2021,
+    "features": []
+  },
+  "monthly": {
+    "label": "Monthly-Only (Zillow + Redfin, test 2023)",
+    "n_features": 18,
+    "auc": 0.8652,
+    "f1": 0.3838,
+    "test_year": 2023,
+    "features": [
+      "homes_sold",
+      "new_listings",
+      "inventory",
+      "median_days_on_market",
+      "pct_off_market_in_2wks",
+      "home_value_mom_pct",
+      "home_value_yoy_pct",
+      "inventory_yoy_pct",
+      "home_value_mom_3m_avg",
+      "home_value_mom_12m_avg",
+      "inventory_mom_12m_avg",
+      "home_value_accel",
+      "home_value_vs_baseline",
+      "dom_vs_baseline",
+      "home_value_mom_pct_lag6",
+      "pct_sold_above_list_lag6",
+      "avg_sale_to_list_ratio_lag6",
+      "home_value_vs_baseline_lag6"
+    ],
+    "fold_auc": {
+      "Fold A (test 2021)": 0.8443,
+      "Fold B (test 2022)": 0.8153,
+      "Fold C (test 2023)": 0.8652
+    }
+  },
+  "winner": "monthly",
+  "retrained": {
+    "label": "Retrained Monthly-Only (Jun 2019 \u2013 Dec 2024, predict Nov 2025)",
+    "train_range": "Jun 2019 \u2013 Dec 2024",
+    "feature_point": "2025-11-30",
+    "forward_window": "Dec 2025 \u2013 Nov 2026",
+    "n_features": 18,
+    "fold_d_auc": 0.724,
+    "features": [
+      "homes_sold",
+      "new_listings",
+      "inventory",
+      "median_days_on_market",
+      "pct_off_market_in_2wks",
+      "home_value_mom_pct",
+      "home_value_yoy_pct",
+      "inventory_yoy_pct",
+      "home_value_mom_3m_avg",
+      "home_value_mom_12m_avg",
+      "inventory_mom_12m_avg",
+      "home_value_accel",
+      "home_value_vs_baseline",
+      "dom_vs_baseline",
+      "home_value_mom_pct_lag6",
+      "pct_sold_above_list_lag6",
+      "avg_sale_to_list_ratio_lag6",
+      "home_value_vs_baseline_lag6"
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "evaluable_rows": 7936,
+  "evaluable_zips": 664,
+  "data_coverage": {
+    "zillow_through": "2026-01-31",
+    "redfin_through": "2025-11-01",
+    "min_periods_used": 11
+  },
+  "binary": {
+    "auc": 0.7747,
+    "accuracy": 0.7776,
+    "f1_binary": 0.4886,
+    "f1_macro": 0.6732
+  },
+  "multiclass": {
+    "f1_macro": 0.4094
+  },
+  "thresholds": {
+    "lower_p25": -0.3016,
+    "upper_p75": 0.2756
+  },
+  "per_cluster": {
+    "affordable_high_demand": {
+      "auc": 0.7623,
+      "accuracy": 0.8109,
+      "n": 2195
+    },
+    "competitive_mid_market": {
+      "auc": 0.7168,
+      "accuracy": 0.797,
+      "n": 2340
+    },
+    "high_value_appreciating": {
+      "auc": 0.795,
+      "accuracy": 0.8022,
+      "n": 1284
+    },
+    "low_activity_cooling": {
+      "auc": 0.7427,
+      "accuracy": 0.668,
+      "n": 1006
+    },
+    "moderate_supply_growing": {
+      "auc": 0.8215,
+      "accuracy": 0.7487,
+      "n": 991
+    },
+    "unknown": {
+      "auc": 0.7428,
+      "accuracy": 0.6833,
+      "n": 120
+    }
+  }
+}
