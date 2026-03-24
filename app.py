@@ -36,37 +36,37 @@ CLUSTER_COLORS = {
     "moderate_supply_growing": "#2a9d8f",
 }
 CLUSTER_LABELS = {
-    "high_value_appreciating": "💎 High-Value Appreciating",
+    "high_value_appreciating": "💎 High-Value, Tight Supply",
     "low_activity_cooling":    "🧊 Low-Activity, Cooling",
     "competitive_mid_market":  "🔥 Competitive Mid-Market",
-    "affordable_high_demand":  "⚡ Affordable, High Demand",
+    "affordable_high_demand":  "⚡ Affordable, High Appreciation",
     "moderate_supply_growing": "📦 Moderate Value, Supply Growing",
 }
 CLUSTER_DESCRIPTIONS = {
     "high_value_appreciating": (
-        "108 ZIPs · Highest median home values (~$376K) and strongest YoY appreciation (12.2%). "
-        "Slowest transaction pace (84-day DOM, 20% above-list rate) — premium ZIPs where homes "
-        "sit longer but prices rise steadily. Appreciation trend is accelerating."
+        "74 ZIPs · Highest median home values (~$318K) with the only meaningfully declining "
+        "inventory of any cluster (-8% YoY). High off-market rate (41%), moderate DOM (56 days). "
+        "Premium ZIPs where demand consistently absorbs supply — durable appreciation signal."
     ),
     "low_activity_cooling": (
-        "85 ZIPs · Lowest home values (~$181K) and weakest appreciation (8.5%). "
-        "Appreciation rate is decelerating fastest of any cluster — the market is losing momentum. "
-        "Slow sales, low competition. Lowest-risk for buyers; lowest-upside for investors."
+        "44 ZIPs · Lowest home values (~$162K) and weakest appreciation (7.1% YoY). "
+        "Highest inventory growth (+14% YoY) and slowest sales pace (76-day DOM, 22% above-list). "
+        "Momentum is softest here — lowest upside for investors, most buyer-friendly market."
     ),
     "competitive_mid_market": (
-        "195 ZIPs · Mid-to-high values (~$338K) with the highest above-list rate (35.4%) "
-        "and the only cluster with tightening inventory. Fast sales (50-day DOM). "
-        "Strong competition despite moderate appreciation — a balanced hot market."
+        "211 ZIPs · Mid-range values (~$266K) with the highest above-list rate (37.6%) "
+        "and fastest DOM (45 days). Strongest competition of any cluster — homes move quickly "
+        "and inventory is stable. A balanced hot market with broad geographic representation."
     ),
     "affordable_high_demand": (
-        "183 ZIPs · Entry-level prices (~$218K) with peak activity: fastest DOM (48 days), "
-        "highest off-market rate (45.5%). 12.1% YoY appreciation. "
-        "Highest demand intensity at the lowest price point — early-entry investor opportunity."
+        "172 ZIPs · Entry-level prices (~$216K) with the strongest YoY appreciation (12.8%). "
+        "Moderate transaction pace (63-day DOM) but rapidly rising inventory signals growing "
+        "developer and investor interest. Best combination of affordability and momentum."
     ),
     "moderate_supply_growing": (
-        "84 ZIPs · Mid-range values (~$208K) with the fastest inventory growth (+6.5% MoM). "
-        "Moderate competition and appreciation (10.5%). Rising supply signals a softening market — "
-        "demand exists but buyers have more options than in other clusters."
+        "154 ZIPs · Mid-range values (~$213K) with rising inventory (+8% YoY) and slow sales "
+        "pace (76-day DOM, 24% above-list). Supply is outpacing demand — appreciation is "
+        "holding (10.1% YoY) but buyers have more options than in tighter clusters."
     ),
 }
 
@@ -929,7 +929,7 @@ def page_risk_map(states, clusters, threshold):
 def page_archetypes(states, clusters, threshold):
     page_header(
         "🏘️", "Neighborhood Archetypes",
-        "K-means clustering on 22 market features · 5 market tendencies across 655 ZIPs",
+        "K-means clustering on 18 model features · 5 market tendencies across 655 ZIPs",
         accent="#2a9d8f",
     )
 
@@ -1016,7 +1016,7 @@ def page_archetypes(states, clusters, threshold):
         <div style="margin-top:1.8rem; padding:1rem 1.2rem; background:#f8f9fa;
                     border-left:4px solid #2a9d8f; border-radius:6px; font-size:0.84rem; color:#495057; line-height:1.7;">
             <strong>📊 How to read these archetypes</strong><br>
-            These five groups were identified by K-means clustering on 22 market features (silhouette score = 0.11),
+            These five groups were identified by K-means clustering on the same 18 features used in the prediction model (silhouette score = 0.16),
             which reflects that real estate markets exist on a <em>spectrum</em> rather than falling into hard buckets.
             Think of each archetype as a <strong>market tendency</strong>, not a rigid category — a ZIP near a boundary
             shares characteristics of both neighbors. Cluster assignments are <strong>static long-run labels</strong>

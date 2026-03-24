@@ -77,15 +77,15 @@ Two supervised targets are engineered from a composite transition score — z-sc
 Class split: 25% up / 50% stable / 25% down.
 
 ### 2. Clustering (unsupervised)
-K-means (k=5) on 22 ZIP-level features (16 means + 6 trend slopes) identifies five neighborhood market tendencies. These are **overlapping archetypes on a spectrum**, not hard mutually-exclusive categories (silhouette = 0.11). Cluster labels are static — they represent a ZIP's long-run market character, separate from short-term directional predictions.
+K-means (k=5) on the same 18 features used in the prediction model (means over Jun 2019–Dec 2024) identifies five neighborhood market tendencies. Using the model's own feature set improved silhouette from 0.11 to 0.16. These are **overlapping archetypes on a spectrum**, not hard mutually-exclusive categories. Cluster labels are static — they represent a ZIP's long-run market character, separate from short-term directional predictions.
 
 | Archetype | ZIPs | Character |
 |---|---|---|
-| 💎 High-Value Appreciating | 108 | Highest median values (~$376K), steady 12.2% YoY appreciation, slower transaction pace |
-| 🧊 Low-Activity, Cooling | 85 | Lowest values (~$181K), weakest and decelerating appreciation, low competition |
-| 🔥 Competitive Mid-Market | 195 | Mid-to-high values (~$338K), highest above-list rate (35.4%), tightening inventory |
-| ⚡ Affordable, High Demand | 183 | Entry-level (~$218K), fastest DOM (48 days), highest off-market rate (45.5%) |
-| 📦 Moderate Value, Supply Growing | 84 | Mid-range (~$208K), fastest inventory growth (+6.5% MoM), softening signals |
+| 💎 High-Value, Tight Supply | 74 | Highest median values (~$318K), only cluster with declining inventory (−8% YoY), high off-market rate (41%) |
+| 🧊 Low-Activity, Cooling | 44 | Lowest values (~$162K), weakest appreciation (7.1% YoY), highest inventory growth (+14% YoY) |
+| 🔥 Competitive Mid-Market | 211 | Mid-range values (~$266K), highest above-list rate (37.6%), fastest DOM (45 days) |
+| ⚡ Affordable, High Appreciation | 172 | Entry-level (~$216K), strongest YoY appreciation (12.8%), rising inventory signals growing interest |
+| 📦 Moderate Value, Supply Growing | 154 | Mid-range (~$213K), rising inventory (+8% YoY), slow DOM (76 days), softest competition |
 
 ### 3. Supervised modeling
 Walk-forward validation only — no random splits on time-ordered panel data:
@@ -176,7 +176,7 @@ uv run jupyter nbconvert --to notebook --execute --inplace notebooks/<name>.ipyn
 
 - ZIP code analysis is aggregated — does not capture block-level variation within a ZIP
 - Transition labels are engineered proxies, not pre-labeled ground truth
-- Neighborhood archetypes (clusters) are tendencies on a spectrum, not hard categories — silhouette score of 0.11 reflects that real estate markets don't fall into discrete buckets
+- Neighborhood archetypes (clusters) are tendencies on a spectrum, not hard categories — silhouette score of 0.16 (improved from 0.11 by using the same 18 model features) still reflects that real estate markets don't fall into discrete buckets
 - The 2022 AUC dip (0.815) is expected — the Fed rate-hike cycle created abrupt market conditions outside the 2019–2021 training distribution; the 2023 recovery (0.865) shows the model captures durable signals, not COVID-era noise
 - The 2024 predictions were validated against actual 2025 outcomes (AUC 0.7747) — a graceful degradation into an unseen rate-cycle year, confirming durable signal
 - The 2025 forward predictions (Dec 2025–Nov 2026 window) cannot be verified until late 2026

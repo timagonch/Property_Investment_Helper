@@ -525,16 +525,17 @@ body(
 
 h2("Method")
 body(
-    "K-means clustering on 22 ZIP-level summary features: 16 means and 6 linear trend slopes "
-    "computed over the full observation window. Each ZIP gets one cluster assignment representing "
-    "its long-run market character."
+    "K-means clustering on the same 18 features selected by RFECV for the prediction model "
+    "(means computed over Jun 2019–Dec 2024). Using the model's own feature set improved "
+    "silhouette from 0.11 to 0.16 vs. the original 22-feature approach. Each ZIP gets one "
+    "cluster assignment representing its long-run market character."
 )
 decision_box(
     "Use static (time-invariant) cluster assignments rather than monthly re-clustering",
     "The clusters are meant to characterize a ZIP's structural identity — its long-run "
     "market type — not its current momentum. The prediction model already captures the "
     "time-varying dynamics. Having both time-varying clusters and time-varying predictions "
-    "would be redundant and harder to interpret. A ZIP being 'Affordable High Demand' is a "
+    "would be redundant and harder to interpret. A ZIP being 'Affordable High Appreciation' is a "
     "durable property of its market structure; whether it's about to break out is what "
     "the model predicts.",
     "Cluster labels are stable context for interpretation, not additional prediction signals."
@@ -542,26 +543,28 @@ decision_box(
 
 h2("Silhouette Score and Honest Interpretation")
 decision_box(
-    "Report and acknowledge the silhouette score of 0.11",
+    "Report and acknowledge the silhouette score of 0.16",
     "K-means silhouette scores in geographic/economic clustering are commonly low because "
-    "real markets exist on a continuum rather than in discrete clusters. A score of 0.11 "
+    "real markets exist on a continuum rather than in discrete clusters. A score of 0.16 "
     "does not mean the clustering is wrong — it means the boundaries are fuzzy, which is "
-    "an accurate reflection of reality. Hiding or not reporting this would be misleading.",
+    "an accurate reflection of reality. Using the same 18 features as the prediction model "
+    "improved separation (0.16 vs. 0.11) and ensures the archetypes are defined in the same "
+    "language the model speaks.",
     "The clusters should be presented as 'market tendencies on a spectrum', not as hard, "
     "mutually exclusive categories. The profiles are real and interpretable — a ZIP in the "
-    "'Affordable High Demand' cluster genuinely has different characteristics than one in "
-    "'Luxury Appreciating' — but the boundary between clusters is not sharp."
+    "'Affordable High Appreciation' cluster genuinely behaves differently than one in "
+    "'High-Value, Tight Supply' — but the boundary between clusters is not sharp."
 )
 
 h2("The 5 Archetypes")
 table(
     ["Archetype", "ZIPs", "Key characteristics", "Avg opportunity score"],
     [
-        ["💎 High-Value Appreciating",      "108", "Highest median values (~$376K), 12.2% YoY appreciation, slower transaction pace (84-day DOM), 20% above-list rate. Premium ZIPs where homes sit longer but prices rise steadily.", "~45%"],
-        ["🧊 Low-Activity, Cooling",         "85",  "Lowest values (~$181K), weakest appreciation (8.5%) and decelerating. Slow sales, low competition, limited upside. Appreciation trend is slowing fastest of any cluster.", "~30%"],
-        ["🔥 Competitive Mid-Market",        "195", "Mid-to-high values (~$338K), highest above-list rate (35.4%), only cluster with tightening inventory, fast 50-day DOM. Hot market dynamics at moderate prices.", "~52%"],
-        ["⚡ Affordable, High Demand",       "183", "Entry-level (~$218K), fastest DOM (48 days), highest off-market rate (45.5%), 12.1% appreciation. Peak demand at lowest price — early-entry investor opportunity.", "~58%"],
-        ["📦 Moderate Value, Supply Growing", "84", "Mid-range (~$208K), fastest inventory growth (+6.5% MoM). Moderate competition, rising supply signals softening. Buyers have more options.", "~38%"],
+        ["💎 High-Value, Tight Supply",       "74",  "Highest median values (~$318K), only cluster with declining inventory (−8% YoY), high off-market rate (41%). Durable demand absorbs supply consistently.", "~45%"],
+        ["🧊 Low-Activity, Cooling",          "44",  "Lowest values (~$162K), weakest appreciation (7.1% YoY), highest inventory growth (+14% YoY), slowest sales pace (76-day DOM). Softest market on all metrics.", "~25%"],
+        ["🔥 Competitive Mid-Market",         "211", "Mid-range values (~$266K), highest above-list rate (37.6%), fastest DOM (45 days). Strongest competition of any cluster — broad geographic representation.", "~52%"],
+        ["⚡ Affordable, High Appreciation",  "172", "Entry-level (~$216K) with strongest YoY appreciation (12.8%). Rising inventory signals growing developer and investor interest. Best affordability-momentum combination.", "~55%"],
+        ["📦 Moderate Value, Supply Growing", "154", "Mid-range (~$213K), rising inventory (+8% YoY), slow DOM (76 days), softest competition. Supply outpacing demand — appreciation is holding but buyers have options.", "~38%"],
     ]
 )
 
@@ -794,9 +797,9 @@ table(
         ["Engineered targets (no ground truth)",
          "There is no official dataset of 'neighborhood transitions'. Our target is a proxy composite score.",
          "The composite is grounded in three real market signals. The model predicts the composite accurately, not an arbitrary label."],
-        ["Clustering silhouette = 0.11",
+        ["Clustering silhouette = 0.16",
          "Real estate markets are a continuum — ZIPs don't fall into discrete buckets",
-         "Present clusters as 'market tendencies on a spectrum', not hard categories. The profiles are real and useful even with fuzzy boundaries."],
+         "Present clusters as 'market tendencies on a spectrum', not hard categories. Using the same 18 model features improved silhouette from 0.11 to 0.16; profiles remain interpretable even with fuzzy boundaries."],
         ["2022 AUC dip (0.815)",
          "Fed rate-hike cycle created conditions outside the training distribution",
          "Acknowledge it directly. The recovery to 0.865 in 2023 is the more important signal — shows durability."],
