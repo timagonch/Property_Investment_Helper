@@ -125,11 +125,11 @@ All 18 features are Zillow and Redfin monthly signals — home value momentum, i
 
 | Feature | What it captures |
 |---|---|
-| `home_value_mom_pct` | Month-over-month % change in home value — strongest single signal |
-| `home_value_vs_baseline_lag6` | Price level vs. ZIP's own 6-month-lagged norm — sustained divergence |
-| `home_value_accel` | Acceleration of price growth — detects momentum shifts early |
-| `inventory_mom_12m_avg` | 12-month average inventory trend — sustained tightening = strong signal |
-| `pct_sold_above_list_lag6` | Lagged demand heat — were homes recently selling above asking? |
+| `home_value_vs_baseline_lag6` | Price level vs. ZIP's own 6-month-lagged norm — strongest single signal (SHAP rank 1) |
+| `home_value_mom_pct` | Month-over-month % change in home value — current price momentum (SHAP rank 2) |
+| `home_value_mom_pct_lag6` | Home value MoM change 6 months prior — lagged momentum confirmation (SHAP rank 3) |
+| `pct_sold_above_list_lag6` | Lagged demand heat — were homes recently selling above asking? (SHAP rank 4) |
+| `dom_vs_baseline` | Days on market vs. ZIP's own historical norm — unusually fast/slow turnover (SHAP rank 5) |
 
 ### 5. Forward predictions (2025)
 The model was retrained on Jun 2019–Dec 2024 (incorporating validated 2024 transition labels) and scored against November 2025 Zillow and Redfin features. The forward window is **Dec 2025–Nov 2026**. The prior 2024 signal was retrospectively validated against actual 2025 outcomes (AUC 0.7747), confirming the model generalises across market cycles. The 2025 predictions cannot be verified until late 2026 — use for prospecting and early positioning.

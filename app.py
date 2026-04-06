@@ -1,7 +1,7 @@
 """
 NC/SC Neighborhood Market Transition Monitor
 Walk-forward validated Gradient Boosting model (AUC 0.865, test year 2023).
-655 ZIPs · Jun 2019–Dec 2024 · 2025 forward signal.
+655 ZIPs · Jun 2019–Nov 2025 · Dec 2025–Nov 2026 forward window.
 """
 
 import json
@@ -523,8 +523,8 @@ def page_home():
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("ZIP codes analyzed", "655")
     c2.metric("Validation AUC (2023 test)", f"{m.get('auc', 0.865):.3f}")
-    c3.metric("Training window", "Jun 2019 – Dec 2024")
-    c4.metric("Most recent forward signal", "2025")
+    c3.metric("Data coverage", "Jun 2019 – Nov 2025")
+    c4.metric("Forward window", "Dec 2025 – Nov 2026")
 
     st.divider()
 
@@ -645,7 +645,7 @@ def page_home():
     st.caption(
         "**Data:** Zillow ZHVI · Redfin Market Tracker &nbsp;|&nbsp; "
         "**Model:** Gradient Boosting · RFECV feature selection · Walk-forward validation &nbsp;|&nbsp; "
-        "**Coverage:** 655 NC/SC ZIPs · Jun 2019 – Dec 2024 · 2025 forward signal"
+        "**Coverage:** 655 NC/SC ZIPs · Jun 2019 – Nov 2025 · Dec 2025–Nov 2026 forward signal"
     )
 
 
@@ -662,7 +662,7 @@ def render_sidebar():
             🏘️ Market Monitor
         </div>
         <div style="font-size: 0.72rem; color: #a8b2c1; margin-top: 0.2rem; letter-spacing: 0.5px;">
-            NC / SC · 655 ZIPs · 2019–2024
+            NC / SC · 655 ZIPs · 2019–2025
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -713,7 +713,7 @@ def render_sidebar():
         st.sidebar.caption(
             f"**Model:** {winner_short}  \n"
             f"**AUC:** {winner_auc:.3f} · test 2023  \n"
-            f"**Coverage:** 655 ZIPs · 2019–2024"
+            f"**Coverage:** 655 ZIPs · Jun 2019–Nov 2025"
         )
 
     return states, clusters, threshold, mode
@@ -1447,17 +1447,30 @@ def page_model_comparison():
     fold_auc = monthly.get("fold_auc", {})
     if fold_auc:
         st.subheader("Monthly-Only Model: AUC Across Walk-Forward Folds")
-        fold_df = pd.DataFrame([
+        rows = [
             {"Fold": k, "AUC": v, "Note": "COVID-era hot market" if "2021" in k
              else "Rate-hike year — market inflection" if "2022" in k
              else "Post-normalization" if "2023" in k else ""}
             for k, v in fold_auc.items()
-        ])
+        ]
+        retrained = comp.get("retrained", {}) if comp else {}
+        rows.append({
+            "Fold": "Fold D (test 2024)",
+            "AUC": retrained.get("fold_d_auc", 0.7240),
+            "Note": "Retrained on Jun 2019–Dec 2023 · powers 2025 forward signal",
+        })
+        rows.append({
+            "Fold": "Actuals (2025 outcomes)",
+            "AUC": 0.7747,
+            "Note": "2024 predictions validated against real 2025 transitions",
+        })
+        fold_df = pd.DataFrame(rows)
         st.dataframe(fold_df, use_container_width=True, hide_index=True)
         st.caption(
             "The 2022 dip is expected: the Fed rate-hike cycle created abrupt market conditions "
-            "outside the 2019–2021 training distribution. The 2023 recovery shows the model "
-            "captures durable leading indicators, not COVID-era noise."
+            "outside the 2019–2021 training distribution. The 2023 recovery (0.8652) confirms "
+            "the model captures durable signals. Fold D (0.7240) and actuals validation (0.7747) "
+            "show the model generalises across unseen post-2023 market conditions."
         )
 
     st.info(
@@ -1543,16 +1556,20 @@ def page_model_performance():
     with col1:
         st.subheader("Model Version Comparison")
         perf = pd.DataFrame([
-            {"Version": "V1 — All features (incl. mortgage)", "Features": 71, "AUC (Fold B)": 0.8607,
+            {"Version": "V1 — All features (incl. mortgage)", "Features": 71,
+             "AUC (test 2021)": 0.8607, "AUC (test 2023)": "—", "AUC (test 2024)": "—", "AUC vs 2025 actuals": "—",
              "Note": "Mortgage rate was #1 feature — national signal, not ZIP-specific"},
-            {"Version": "V2 — Removed mortgage features",     "Features": 69, "AUC (Fold B)": 0.8473,
+            {"Version": "V2 — Removed mortgage features",     "Features": 69,
+             "AUC (test 2021)": 0.8473, "AUC (test 2023)": "—", "AUC (test 2024)": "—", "AUC vs 2025 actuals": "—",
              "Note": "ΔAUC = −0.013 (negligible)"},
             {"Version": "V3 — RFECV-selected",                "Features": comp["v3"]["n_features"] if comp else 39,
-             "AUC (Fold B)": comp["v3"]["auc"] if comp else 0.8519,
-             "Note": "Annual + monthly features"},
-            {"Version": "Monthly-Only — RFECV-selected ✓",    "Features": comp["monthly"]["n_features"] if comp else 33,
-             "AUC (Fold B)": comp["monthly"]["auc"] if comp else 0.8650,
-             "Note": "Zillow + Redfin only — used in app"},
+             "AUC (test 2021)": comp["v3"]["auc"] if comp else 0.8519, "AUC (test 2023)": "—", "AUC (test 2024)": "—", "AUC vs 2025 actuals": "—",
+             "Note": "Annual features blocked extension — ACS/CBP/IRS lag prevents 2022+ labels"},
+            {"Version": "Monthly-Only — RFECV-selected ✓",    "Features": comp["monthly"]["n_features"] if comp else 18,
+             "AUC (test 2021)": 0.8443, "AUC (test 2023)": comp["monthly"]["auc"] if comp else 0.8652,
+             "AUC (test 2024)": comp.get("retrained", {}).get("fold_d_auc", 0.7240) if comp else 0.7240,
+             "AUC vs 2025 actuals": 0.7747,
+             "Note": "Zillow + Redfin only — updatable monthly, validated through 2025"},
         ])
         st.dataframe(perf, use_container_width=True, hide_index=True)
 
@@ -1569,6 +1586,17 @@ def page_model_performance():
         st.info(
             "**Why walk-forward?**  Random train/test splits leak future data in time-series panels. "
             "Walk-forward trains only on past months and tests on future months — matching real deployment."
+        )
+
+        st.divider()
+        st.subheader("Why Monthly-Only Won")
+        st.info(
+            "The 17 annual ACS/CBP/IRS features removed ranked #12–#27 in permutation importance "
+            "(0.0008–0.0024 vs 0.046 for the top monthly feature). Dropping them forces RFECV to find "
+            "better monthly substitutes and removes data-lag noise. More importantly, annual data "
+            "publication lag (1–2 years) capped V3 at Fold B (test 2021) — Monthly-Only extends "
+            "validation to 2023, 2024, and retrospective 2025 actuals, and can be updated monthly "
+            "as new Redfin/Zillow data is released."
         )
 
     with col2:
@@ -1597,11 +1625,11 @@ def page_model_performance():
 
         st.subheader("What the top features mean")
         explanations = [
-            ("Home Value MoM %",           "Month-over-month % change in ZIP home value index — the single strongest signal."),
-            ("Home Value Acceleration",     "Is the rate of price growth itself speeding up? Detects momentum shifts early."),
-            ("Value vs Baseline (6m lag)",  "Is the ZIP's price level elevated vs its own 6-month-lagged norm? Captures sustained divergence."),
-            ("Inventory Trend (12m avg)",   "12-month average of monthly inventory change. Sustained supply tightening = strong transition signal."),
-            ("Sale-to-List Ratio (6m lag)", "Were homes recently selling close to or above list price? A lagged demand heat signal."),
+            ("Value vs Baseline (6m lag)",  "ZIP's price level vs. its own 6-month-lagged norm — sustained structural drift is the single strongest signal."),
+            ("Home Value MoM %",           "Month-over-month % change in ZIP home value index — current price momentum."),
+            ("Home Value MoM % (6m lag)",  "Home value MoM change 6 months prior — lagged momentum confirmation that direction is persistent."),
+            ("% Sold Above List (6m lag)", "% of homes sold above list price 6 months ago — sustained buyer demand heat, not a one-month spike."),
+            ("Days on Market vs Baseline", "Days on market vs. this ZIP's own historical norm — whether homes are selling unusually fast or slow."),
         ]
         for feat, desc in explanations:
             st.markdown(f"**{feat}:** {desc}")
@@ -1635,7 +1663,7 @@ def page_forward_predictions(states, clusters, threshold):
         horizontal=True,
     )
 
-    # Always use the latest available month (Dec 2024)
+    # Always use the latest available month (Nov 2025 — last full Redfin coverage)
     fwd_bin_p = fwd_bin[fwd_bin["month"] == fwd_bin["month"].max()]
     fwd_mc_p  = fwd_mc[fwd_mc["month"] == fwd_mc["month"].max()]
 
@@ -1820,8 +1848,8 @@ def main():
     nav_options = ["Home", "2025 Signal", "Archetypes", "Compare", "Deep Dive"]
     nav_icons   = ["house-fill", "graph-up-arrow", "buildings", "arrow-left-right", "search"]
     if educator_mode:
-        nav_options += ["Validated Map", "Model Comparison", "Performance"]
-        nav_icons   += ["map-fill", "bar-chart-fill", "speedometer2"]
+        nav_options += ["Validated Map", "Performance"]
+        nav_icons   += ["map-fill", "speedometer2"]
 
     selected = option_menu(
         menu_title=None,
@@ -1861,7 +1889,6 @@ def main():
         "Compare":          lambda: page_zip_comparison(states, clusters, threshold),
         "Deep Dive":        lambda: page_zip_dive(states, clusters, threshold),
         "Validated Map":    lambda: page_risk_map(states, clusters, threshold),
-        "Model Comparison": page_model_comparison,
         "Performance":      page_model_performance,
     }
 
