@@ -850,8 +850,18 @@ def page_risk_map(states, clusters, threshold):
 
         st.divider()
 
+        _dir_plot = (
+            filtered[["zip", "net_direction", "prob_up", "prob_stable",
+                       "prob_down", "city", "cluster_label", "state"]]
+            .copy()
+        )
+        for _c in ["net_direction", "prob_up", "prob_stable", "prob_down"]:
+            _dir_plot[_c] = _dir_plot[_c].fillna(0)
+        _dir_plot["city"]          = _dir_plot["city"].fillna("")
+        _dir_plot["cluster_label"] = _dir_plot["cluster_label"].fillna("Unknown")
+        _dir_plot["state"]         = _dir_plot["state"].fillna("")
         fig = px.choropleth(
-            filtered,
+            _dir_plot,
             geojson=geojson,
             locations="zip",
             featureidkey="properties.ZCTA5CE20",
@@ -1740,8 +1750,22 @@ def page_forward_predictions(states, clusters, threshold):
             coloraxis_colorbar=dict(title="Opportunity<br>Score", tickformat=".0%", len=0.6)
         )
     else:
+        # Subset to only the columns Plotly needs — extra columns (prob_stable,
+        # cluster, cluster_name, etc.) can leak into customdata and serialize as
+        # bare NaN literals, causing a JSON.parse failure in the frontend.
+        _mc_plot = (
+            filtered_mc[["zip", "net_direction", "prob_up", "prob_down",
+                          "city", "cluster_label", "state"]]
+            .copy()
+        )
+        _mc_plot["net_direction"]  = _mc_plot["net_direction"].fillna(0)
+        _mc_plot["prob_up"]        = _mc_plot["prob_up"].fillna(0)
+        _mc_plot["prob_down"]      = _mc_plot["prob_down"].fillna(0)
+        _mc_plot["city"]           = _mc_plot["city"].fillna("")
+        _mc_plot["cluster_label"]  = _mc_plot["cluster_label"].fillna("Unknown")
+        _mc_plot["state"]          = _mc_plot["state"].fillna("")
         fig = px.choropleth(
-            filtered_mc,
+            _mc_plot,
             geojson=geojson, locations="zip", featureidkey="properties.ZCTA5CE20",
             color="net_direction",
             color_continuous_scale=[

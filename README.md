@@ -59,8 +59,7 @@ The app has two modes selectable from the sidebar:
 | Page | Description |
 |---|---|
 | **Validated Map** | 2023 test-set choropleth — opportunity score or net market direction |
-| **Model Comparison** | V3 (all sources) vs. Monthly-Only head-to-head with side-by-side maps |
-| **Performance** | Walk-forward fold metrics, version history, top-15 features by mean \|SHAP\| |
+| **Performance** | Walk-forward fold metrics, version history, model comparison (V3 vs. Monthly-Only), top-15 features by mean \|SHAP\| |
 
 ---
 
