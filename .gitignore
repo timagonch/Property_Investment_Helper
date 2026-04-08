@@ -21,6 +21,9 @@ COPILOT_README.md
 .claude/
 claude/
 
+# Documentation folder
+documentation/
+
 # Office temp/lock files
 ~$*
 
