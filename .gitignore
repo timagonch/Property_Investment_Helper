@@ -17,5 +17,26 @@ data/
 data/geo/*.zip
 COPILOT_README.md
 
-# claude
+# Claude Code session data
+.claude/
 claude/
+
+# Office temp/lock files
+~$*
+
+# One-time report fix scripts and logs
+fix_*.py
+fix_*_log.txt
+read_paras.txt
+final_report_*.txt
+report_*.txt
+
+# Presentation artifacts
+generate_presentation.py
+generate_transcript.py
+generate_cluster_viz.py
+generate_cluster_animation.py
+NC_SC_Market_Presentation.pptx
+NC_SC_Market_Transcript.docx
+_pres_assets/
+cluster_3d_interactive.html
