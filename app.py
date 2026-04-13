@@ -6,13 +6,33 @@ Walk-forward validated Gradient Boosting model (AUC 0.865, test year 2023).
 
 import json
 import os
+import re
 
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 from streamlit_option_menu import option_menu
+
+
+def _plotly_chart_safe(fig, **kwargs):
+    """Render a Plotly figure, scrubbing any NaN/Infinity before the browser JSON.parse sees them.
+
+    Plotly's Python serializer can emit bare NaN/Infinity literals (valid JS but
+    not valid JSON). JSON.parse in the browser rejects them. This helper serializes
+    the figure to a JSON string, replaces the offending literals with 0, then
+    reconstructs the figure before passing it to st.plotly_chart.
+    """
+    fig_json = pio.to_json(fig)
+    if "NaN" in fig_json or "Infinity" in fig_json:
+        fig_json = re.sub(r"\bNaN\b", "0", fig_json)
+        fig_json = re.sub(r"-Infinity\b", "-1.0", fig_json)
+        fig_json = re.sub(r"\bInfinity\b", "1.0", fig_json)
+        fig = go.Figure(json.loads(fig_json))
+    st.plotly_chart(fig, **kwargs)
+
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -796,7 +816,7 @@ def page_risk_map(states, clusters, threshold):
             geo=dict(bgcolor="rgba(0,0,0,0)"),
         )
         add_state_overlays(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        _plotly_chart_safe(fig, use_container_width=True)
 
         if len(high_risk) > 0:
             st.subheader(f"High-Opportunity ZIPs (≥ {threshold}%)")
@@ -911,7 +931,7 @@ def page_risk_map(states, clusters, threshold):
             geo=dict(bgcolor="rgba(0,0,0,0)"),
         )
         add_state_overlays(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        _plotly_chart_safe(fig, use_container_width=True)
 
         st.subheader("Net Direction Score by Cluster")
         cluster_stats = (
@@ -1733,8 +1753,18 @@ def page_forward_predictions(states, clusters, threshold):
 
     # ── Map ───────────────────────────────────────────────────────────────────
     if fwd_mode == "opportunity":
+        _bin_plot = filtered_bin[["zip", "prob_transition", "city", "cluster_label", "cluster_name", "state"]].copy()
+        _bin_plot["prob_transition"] = (
+            pd.to_numeric(_bin_plot["prob_transition"], errors="coerce")
+            .replace([np.inf, -np.inf], np.nan)
+            .fillna(0)
+            .clip(0, 1)
+        )
+        _bin_plot["city"]          = _bin_plot["city"].fillna("")
+        _bin_plot["cluster_label"] = _bin_plot["cluster_label"].fillna("Unknown")
+        _bin_plot["state"]         = _bin_plot["state"].fillna("")
         fig = px.choropleth(
-            filtered_bin,
+            _bin_plot,
             geojson=geojson, locations="zip", featureidkey="properties.ZCTA5CE20",
             color="prob_transition",
             color_continuous_scale=[
@@ -1752,15 +1782,19 @@ def page_forward_predictions(states, clusters, threshold):
     else:
         # Subset to only the columns Plotly needs — extra columns (prob_stable,
         # cluster, cluster_name, etc.) can leak into customdata and serialize as
-        # bare NaN literals, causing a JSON.parse failure in the frontend.
+        # bare NaN/Infinity literals, causing a JSON.parse failure in the frontend.
         _mc_plot = (
             filtered_mc[["zip", "net_direction", "prob_up", "prob_down",
                           "city", "cluster_label", "state"]]
             .copy()
         )
-        _mc_plot["net_direction"]  = _mc_plot["net_direction"].fillna(0)
-        _mc_plot["prob_up"]        = _mc_plot["prob_up"].fillna(0)
-        _mc_plot["prob_down"]      = _mc_plot["prob_down"].fillna(0)
+        for _col, _lo, _hi in [("net_direction", -1, 1), ("prob_up", 0, 1), ("prob_down", 0, 1)]:
+            _mc_plot[_col] = (
+                pd.to_numeric(_mc_plot[_col], errors="coerce")
+                .replace([np.inf, -np.inf], np.nan)
+                .fillna(0)
+                .clip(_lo, _hi)
+            )
         _mc_plot["city"]           = _mc_plot["city"].fillna("")
         _mc_plot["cluster_label"]  = _mc_plot["cluster_label"].fillna("Unknown")
         _mc_plot["state"]          = _mc_plot["state"].fillna("")
@@ -1799,7 +1833,7 @@ def page_forward_predictions(states, clusters, threshold):
         paper_bgcolor="rgba(0,0,0,0)", geo=dict(bgcolor="rgba(0,0,0,0)"),
     )
     add_state_overlays(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    _plotly_chart_safe(fig, use_container_width=True)
 
     # ── Top opportunities table ────────────────────────────────────────────────
     if fwd_mode == "opportunity":
