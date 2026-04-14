@@ -6,33 +6,13 @@ Walk-forward validated Gradient Boosting model (AUC 0.865, test year 2023).
 
 import json
 import os
-import re
 
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 import streamlit as st
 from streamlit_option_menu import option_menu
-
-
-def _plotly_chart_safe(fig, **kwargs):
-    """Render a Plotly figure, scrubbing any NaN/Infinity before the browser JSON.parse sees them.
-
-    Plotly's Python serializer can emit bare NaN/Infinity literals (valid JS but
-    not valid JSON). JSON.parse in the browser rejects them. This helper serializes
-    the figure to a JSON string, replaces the offending literals with 0, then
-    reconstructs the figure before passing it to st.plotly_chart.
-    """
-    fig_json = pio.to_json(fig)
-    if "NaN" in fig_json or "Infinity" in fig_json:
-        fig_json = re.sub(r"\bNaN\b", "0", fig_json)
-        fig_json = re.sub(r"-Infinity\b", "-1.0", fig_json)
-        fig_json = re.sub(r"\bInfinity\b", "1.0", fig_json)
-        fig = go.Figure(json.loads(fig_json))
-    st.plotly_chart(fig, **kwargs)
-
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -92,12 +72,12 @@ CLUSTER_DESCRIPTIONS = {
 
 ZIP_COMPARISON_COLORS = ["#e63946", "#457b9d", "#2a9d8f", "#e9c46a"]
 
-# Top 10 features to show in ZIP Deep Dive time-series panel (from monthly model)
+# Features available in features_full.csv (18 model features from score_full_panel.py)
 SELECTED_FEATURES = [
-    "home_value_mom_pct", "home_value_accel", "home_value_vs_baseline_lag6",
-    "home_value_mom_3m_avg", "inventory_mom_12m_avg", "avg_sale_to_list_ratio_lag6",
-    "pct_sold_above_list_lag3", "inventory_yoy_pct", "median_price_per_sqft",
-    "pct_sold_above_list",
+    "home_value_mom_pct", "home_value_accel", "home_value_vs_baseline",
+    "home_value_mom_3m_avg", "home_value_mom_12m_avg", "inventory_mom_12m_avg",
+    "avg_sale_to_list_ratio_lag6", "pct_sold_above_list_lag6", "inventory_yoy_pct",
+    "dom_vs_baseline",
 ]
 
 FEATURE_LABELS = {
@@ -259,6 +239,85 @@ def load_features():
 
 
 @st.cache_data
+def load_full_predictions():
+    """Full scored panel Jun 2019 – Nov 2025."""
+    df = pd.read_csv(os.path.join(DATA, "model_predictions_full.csv"))
+    df["month"] = pd.to_datetime(df["month"])
+    df["zip"] = df["zip"].astype(str).str.zfill(5)
+    return df
+
+
+@st.cache_data
+def load_full_multiclass():
+    """Full multiclass scored panel Jun 2019 – Nov 2025."""
+    df = pd.read_csv(os.path.join(DATA, "model_predictions_multiclass_full.csv"))
+    df["month"] = pd.to_datetime(df["month"])
+    df["zip"] = df["zip"].astype(str).str.zfill(5)
+    return df
+
+
+@st.cache_data
+def load_full_features():
+    """Full feature panel Jun 2019 – Nov 2025 (18 model features)."""
+    df = pd.read_csv(os.path.join(DATA, "features_full.csv"))
+    df["month"] = pd.to_datetime(df["month"])
+    df["zip"] = df["zip"].astype(str).str.zfill(5)
+    return df
+
+
+@st.cache_data
+def load_full_shap():
+    """Full SHAP values Jun 2019 – Nov 2025 for all scored rows."""
+    df = pd.read_csv(os.path.join(DATA, "shap_values_full.csv"))
+    df["month"] = pd.to_datetime(df["month"])
+    df["zip"] = df["zip"].astype(str).str.zfill(5)
+    return df
+
+
+@st.cache_data
+def build_validation_table():
+    """Per-ZIP validation summary for the 2023 test year (Fold C, primary evaluation).
+
+    Returns one row per ZIP with:
+      - avg predicted opportunity score
+      - actual upward transition rate (fraction of months that were labeled 1)
+      - predicted label (1 if avg score >= 0.50)
+      - actual label (majority vote across the 12 test months)
+      - correct (predicted == actual majority)
+    """
+    df = pd.read_csv(os.path.join(DATA, "model_predictions_monthly.csv"))
+    df["month"] = pd.to_datetime(df["month"])
+    df["zip"]   = df["zip"].astype(str).str.zfill(5)
+
+    # Fold C test year is 2023
+    df = df[df["month"].dt.year == 2023]
+
+    cities = load_city_lookup()
+
+    summary = (
+        df.groupby(["zip", "cluster_name"])
+        .agg(
+            avg_score=("prob_transition", "mean"),
+            actual_rate=("transition_next_12m", "mean"),
+            cluster=("cluster", "first"),
+        )
+        .reset_index()
+    )
+    summary["predicted_label"]   = (summary["avg_score"] >= 0.50).astype(int)
+    summary["actual_label"]      = (summary["actual_rate"] >= 0.50).astype(int)
+    summary["correct"]           = summary["predicted_label"] == summary["actual_label"]
+    summary["cluster_label"]     = summary["cluster_name"].map(CLUSTER_LABELS)
+    summary["state"]             = summary["zip"].apply(_state_label)
+    summary["city"]              = summary["zip"].map(cities).fillna("")
+    summary["Opp Score (%)"]     = (summary["avg_score"] * 100).round(1)
+    summary["Actual Trans. Rate"]= (summary["actual_rate"] * 100).round(0).astype(int).astype(str) + "%"
+    summary["Predicted"]         = summary["predicted_label"].map({1: "Up", 0: "Stable/Down"})
+    summary["Actual"]            = summary["actual_label"].map({1: "Up", 0: "Stable/Down"})
+    summary["Match"]             = summary["correct"].map({True: "✓", False: "✗"})
+    return summary
+
+
+@st.cache_data
 def load_city_lookup():
     df = pd.read_csv(os.path.join(DATA, "zip_city_lookup.csv"))
     df["zip"] = df["zip"].astype(str).str.zfill(5)
@@ -306,6 +365,52 @@ def add_state_overlays(fig):
 
 def _state_label(z):
     return "NC" if z[:3] in [str(x) for x in range(270, 290)] else "SC"
+
+
+@st.cache_data
+def build_forward_zip_summary():
+    """ZIP-level summary built from the 2025 forward predictions (Nov 2025 snapshot)."""
+    preds = load_forward_predictions()
+    preds = preds[preds["month"] == preds["month"].max()]
+    zip_df = (
+        preds.groupby("zip")
+        .agg(
+            prob_transition=("prob_transition", "mean"),
+            cluster=("cluster", "first"),
+            cluster_name=("cluster_name", "first"),
+        )
+        .reset_index()
+    )
+    zip_df["risk_pct"]      = (zip_df["prob_transition"] * 100).round(1)
+    zip_df["cluster_label"] = zip_df["cluster_name"].map(CLUSTER_LABELS)
+    zip_df["state"]         = zip_df["zip"].apply(_state_label)
+    cities = load_city_lookup()
+    zip_df["city"] = zip_df["zip"].map(cities).fillna("")
+    return zip_df
+
+
+@st.cache_data
+def build_forward_zip_multiclass_summary():
+    """ZIP-level multiclass summary from the 2025 forward predictions."""
+    preds = load_forward_multiclass()
+    preds = preds[preds["month"] == preds["month"].max()]
+    zip_df = (
+        preds.groupby("zip")
+        .agg(
+            prob_down=("prob_down", "mean"),
+            prob_stable=("prob_stable", "mean"),
+            prob_up=("prob_up", "mean"),
+            net_direction=("net_direction", "mean"),
+            cluster=("cluster", "first"),
+            cluster_name=("cluster_name", "first"),
+        )
+        .reset_index()
+    )
+    zip_df["cluster_label"] = zip_df["cluster_name"].map(CLUSTER_LABELS)
+    zip_df["state"]         = zip_df["zip"].apply(_state_label)
+    cities = load_city_lookup()
+    zip_df["city"] = zip_df["zip"].map(cities).fillna("")
+    return zip_df
 
 
 @st.cache_data
@@ -626,18 +731,18 @@ def page_home():
     st.subheader("How to use this tool")
 
     guide = [
-        ("🗺️", "Market Transition Map",
-         "Start here. View opportunity scores or net market direction across all 655 ZIPs as a choropleth map. Filter by state, cluster archetype, and threshold."),
-        ("🏘️", "Neighborhood Archetypes",
+        ("🔮", "2025 Signal",
+         "Start here. Retrained model (Jun 2019–Dec 2024) scored against Nov 2025 features — forward window Dec 2025–Nov 2026. The 2024 predictions were validated at AUC 0.7747 against actual 2025 outcomes."),
+        ("🏘️", "Archetypes",
          "The 5 distinct market types identified by K-means clustering. Understand each ZIP's long-run market character — not just its current trend."),
-        ("🔍", "ZIP Code Deep Dive",
-         "Select any ZIP to see its full monthly prediction history, key feature trends vs. cluster average, and a SHAP waterfall explaining exactly why the model scored it the way it did."),
-        ("🔮", "2025 Forward Predictions",
-         "The most current signal available. Retrained model (Jun 2019–Dec 2024) scored against Nov 2025 features. Forward window: Dec 2025–Nov 2026. The 2024 predictions were validated at AUC 0.7747 against actual 2025 outcomes."),
-        ("⚡", "Model Comparison",
-         "V3 (all data sources) vs. Monthly-Only (Zillow + Redfin only) head-to-head. Why the monthly model won, what features changed, and side-by-side maps."),
-        ("📊", "Model Performance",
-         "Walk-forward validation metrics across all three folds, version history, and top-15 features ranked by mean absolute SHAP impact."),
+        ("⚖️", "Compare",
+         "Select 2–4 ZIPs for a side-by-side view: opportunity score and net direction history (Jun 2019–Nov 2025), current forward signal, and SHAP feature drivers."),
+        ("🔍", "Deep Dive",
+         "Select any ZIP to see its full opportunity score history (Jun 2019–Nov 2025), key feature trends vs. cluster average, and a SHAP waterfall explaining exactly why the model scored it the way it did."),
+        ("🗺️", "Validated Map (Educator)",
+         "Choropleth of the 2023 walk-forward test-set predictions — useful for understanding model validation and how scores distribute across NC/SC."),
+        ("📊", "Performance (Educator)",
+         "Walk-forward validation metrics across all folds, model version history, and top-15 features ranked by mean absolute SHAP impact across Jun 2019–Nov 2025."),
     ]
 
     for i in range(0, len(guide), 2):
@@ -816,19 +921,35 @@ def page_risk_map(states, clusters, threshold):
             geo=dict(bgcolor="rgba(0,0,0,0)"),
         )
         add_state_overlays(fig)
-        _plotly_chart_safe(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-        if len(high_risk) > 0:
-            st.subheader(f"High-Opportunity ZIPs (≥ {threshold}%)")
-            table = (
-                high_risk[["zip", "city", "risk_pct", "cluster_label", "state"]]
-                .sort_values("risk_pct", ascending=False)
-                .rename(columns={
-                    "zip": "ZIP", "city": "City", "risk_pct": "Opportunity Score (%)",
-                    "cluster_label": "Cluster", "state": "State",
-                })
-            )
-            st.dataframe(table.reset_index(drop=True), use_container_width=True, height=300)
+        st.subheader("Predicted vs. Actual — 2023 Test Year (Fold C)")
+        val = build_validation_table()
+        val_filtered = val[val["state"].isin(states) & val["cluster_name"].isin(clusters)]
+        n_correct = val_filtered["correct"].sum()
+        n_total   = len(val_filtered)
+        accuracy  = n_correct / n_total if n_total > 0 else 0
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("ZIPs evaluated", n_total)
+        c2.metric("Correctly predicted", n_correct)
+        c3.metric("ZIP-level accuracy", f"{accuracy:.1%}")
+
+        display_cols = ["zip", "city", "Opp Score (%)", "Predicted", "Actual",
+                        "Actual Trans. Rate", "Match", "cluster_label", "state"]
+        display_cols = [c for c in display_cols if c in val_filtered.columns]
+        table = (
+            val_filtered[display_cols]
+            .sort_values("Opp Score (%)", ascending=False)
+            .rename(columns={"zip": "ZIP", "city": "City",
+                              "cluster_label": "Cluster", "state": "State"})
+        )
+        st.dataframe(table.reset_index(drop=True), use_container_width=True, height=320)
+        st.caption(
+            "**Predicted** = model output ≥ 50% probability · "
+            "**Actual** = majority of 2023 months labeled upward transition · "
+            "**Match ✓** = prediction agreed with outcome"
+        )
 
         st.subheader("Opportunity Score by Cluster")
         cluster_stats = (
@@ -931,7 +1052,7 @@ def page_risk_map(states, clusters, threshold):
             geo=dict(bgcolor="rgba(0,0,0,0)"),
         )
         add_state_overlays(fig)
-        _plotly_chart_safe(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Net Direction Score by Cluster")
         cluster_stats = (
@@ -1065,12 +1186,12 @@ def page_zip_dive(states, clusters, threshold):
         "Monthly opportunity score · feature trends vs. cluster average · SHAP waterfall explanation",
     )
 
-    preds    = load_predictions()
-    features = load_features()
-    zip_df   = build_zip_summary()
+    features    = load_full_features()
+    fwd_zip_df  = build_forward_zip_summary()
+    fwd_mc_df   = build_forward_zip_multiclass_summary()
 
     available_zips = sorted(
-        zip_df[zip_df["state"].isin(states) & zip_df["cluster_name"].isin(clusters)]["zip"].tolist()
+        fwd_zip_df[fwd_zip_df["state"].isin(states) & fwd_zip_df["cluster_name"].isin(clusters)]["zip"].tolist()
     )
     if not available_zips:
         st.warning("No ZIPs match the current sidebar filters.")
@@ -1079,32 +1200,44 @@ def page_zip_dive(states, clusters, threshold):
     selected_zip = st.selectbox(
         "Select ZIP code", available_zips,
         format_func=lambda z: (
-            f"{z} — {zip_df.loc[zip_df['zip']==z, 'city'].values[0]}  |  "
-            f"{zip_df.loc[zip_df['zip']==z, 'cluster_label'].values[0]}  |  "
-            f"Opportunity: {zip_df.loc[zip_df['zip']==z, 'risk_pct'].values[0]:.1f}%"
+            f"{z} — {fwd_zip_df.loc[fwd_zip_df['zip']==z, 'city'].values[0]}  |  "
+            f"{fwd_zip_df.loc[fwd_zip_df['zip']==z, 'cluster_label'].values[0]}  |  "
+            f"2025 Signal: {fwd_zip_df.loc[fwd_zip_df['zip']==z, 'risk_pct'].values[0]:.1f}%"
         )
     )
 
-    zip_info = zip_df[zip_df["zip"] == selected_zip].iloc[0]
+    zip_info    = fwd_zip_df[fwd_zip_df["zip"] == selected_zip].iloc[0]
+    mc_row_rows = fwd_mc_df[fwd_mc_df["zip"] == selected_zip]
+    mc_row      = mc_row_rows.iloc[0] if len(mc_row_rows) > 0 else None
     cname = zip_info["cluster_name"]
     color = CLUSTER_COLORS[cname]
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("ZIP Code", selected_zip)
     c2.metric("City", zip_info["city"])
-    c3.metric("Opportunity Score", f"{zip_info['risk_pct']:.1f}%")
+    c3.metric("2025 Opportunity Score", f"{zip_info['risk_pct']:.1f}%")
     c4.metric("Cluster", CLUSTER_LABELS.get(cname, cname))
+
+    if mc_row is not None:
+        net = mc_row["net_direction"]
+        dir_lbl = "Heating" if net > 0.15 else ("Cooling" if net < -0.15 else "Stable")
+        st.caption(
+            f"**Dec 2025–Nov 2026 forward signal** &nbsp;|&nbsp; "
+            f"Net direction: {net:+.3f} ({dir_lbl}) &nbsp;|&nbsp; "
+            f"P(Up): {mc_row['prob_up']:.1%} &nbsp; P(Stable): {mc_row['prob_stable']:.1%} &nbsp; P(Down): {mc_row['prob_down']:.1%}"
+        )
 
     st.divider()
 
-    # Risk score over time
-    zip_preds = preds[preds["zip"] == selected_zip].sort_values("month")
+    # Full opportunity score history Jun 2019 – Nov 2025
+    full_preds = load_full_predictions()
+    zip_preds  = full_preds[full_preds["zip"] == selected_zip].sort_values("month")
     fig_risk = go.Figure()
     fig_risk.add_trace(go.Scatter(
         x=zip_preds["month"], y=zip_preds["prob_transition"] * 100,
-        mode="lines+markers", name="Opportunity score",
+        mode="lines+markers", name="Opportunity Score",
         line=dict(color=color, width=2),
-        marker=dict(size=5),
+        marker=dict(size=4),
     ))
     fig_risk.add_hline(
         y=threshold, line_dash="dash", line_color="grey",
@@ -1112,7 +1245,7 @@ def page_zip_dive(states, clusters, threshold):
         annotation_position="bottom right",
     )
     fig_risk.update_layout(
-        title=f"Monthly Opportunity Score — {selected_zip}",
+        title=f"Opportunity Score History (Jun 2019 – Nov 2025) — {selected_zip}",
         yaxis_title="Opportunity Score (%)", xaxis_title="",
         height=280, margin=dict(t=40, b=20),
     )
@@ -1169,11 +1302,11 @@ def page_zip_dive(states, clusters, threshold):
     st.divider()
     st.subheader("Why this prediction? — SHAP Feature Contributions")
 
-    shap_df  = load_shap()
+    shap_df  = load_full_shap()
     zip_shap = shap_df[shap_df["zip"] == selected_zip].sort_values("month")
 
     if zip_shap.empty:
-        st.info("SHAP values not available for this ZIP (not in 2021 test set).")
+        st.info("SHAP values not available for this ZIP.")
     else:
         shap_months = zip_shap["month"].dt.strftime("%b %Y").tolist()
         selected_month_label = st.select_slider(
@@ -1222,8 +1355,8 @@ def page_zip_comparison(states, clusters, threshold):
         accent="#457b9d",
     )
 
-    zip_df = build_zip_summary()
-    mc_df  = build_zip_multiclass_summary()
+    zip_df = build_forward_zip_summary()
+    mc_df  = build_forward_zip_multiclass_summary()
 
     available_df = zip_df[
         zip_df["state"].isin(states) & zip_df["cluster_name"].isin(clusters)
@@ -1292,16 +1425,16 @@ def page_zip_comparison(states, clusters, threshold):
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Time-series charts ────────────────────────────────────────────────────────
-    preds    = load_predictions()
-    mc_preds = load_multiclass_predictions()
+    # ── Time-series charts (full history Jun 2019 – Nov 2025) ────────────────────
+    preds    = load_full_predictions()
+    mc_preds = load_full_multiclass()
     zip_preds = preds[preds["zip"].isin(selected_zips)].copy()
     zip_mc    = mc_preds[mc_preds["zip"].isin(selected_zips)].copy()
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Opportunity Score — 2023")
+        st.subheader("Opportunity Score — Jun 2019 to Nov 2025")
         fig = go.Figure()
         for z in selected_zips:
             zd = zip_preds[zip_preds["zip"] == z].sort_values("month")
@@ -1309,7 +1442,7 @@ def page_zip_comparison(states, clusters, threshold):
                 x=zd["month"], y=zd["prob_transition"] * 100,
                 mode="lines+markers", name=z,
                 line=dict(color=colors[z], width=2.5),
-                marker=dict(size=5),
+                marker=dict(size=4),
             ))
         fig.add_hline(
             y=threshold, line_dash="dash", line_color="#adb5bd",
@@ -1325,7 +1458,7 @@ def page_zip_comparison(states, clusters, threshold):
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("Net Market Direction — 2023")
+        st.subheader("Net Market Direction — Jun 2019 to Nov 2025")
         fig2 = go.Figure()
         for z in selected_zips:
             zd = zip_mc[zip_mc["zip"] == z].sort_values("month")
@@ -1333,7 +1466,7 @@ def page_zip_comparison(states, clusters, threshold):
                 x=zd["month"], y=zd["net_direction"],
                 mode="lines+markers", name=z,
                 line=dict(color=colors[z], width=2.5),
-                marker=dict(size=5),
+                marker=dict(size=4),
             ))
         fig2.add_hline(y=0, line_color="#adb5bd", line_dash="dash", line_width=1)
         fig2.update_layout(
@@ -1347,7 +1480,7 @@ def page_zip_comparison(states, clusters, threshold):
 
     # ── Summary table ─────────────────────────────────────────────────────────────
     st.divider()
-    st.subheader("Head-to-Head Summary — Dec 2023")
+    st.subheader("Head-to-Head Summary — Dec 2025–Nov 2026 Forward Signal")
     rows = []
     for z in selected_zips:
         info    = zip_df[zip_df["zip"] == z].iloc[0]
@@ -1367,9 +1500,9 @@ def page_zip_comparison(states, clusters, threshold):
 
     # ── SHAP comparison ────────────────────────────────────────────────────────────
     st.divider()
-    st.subheader("What's driving each prediction? — SHAP (Dec 2023)")
+    st.subheader("What drove each prediction? — SHAP (Nov 2025)")
 
-    shap_df   = load_shap()
+    shap_df   = load_full_shap()
     shap_cols = [c for c in shap_df.columns if c.startswith("shap_") and c != "shap_base"]
     latest_mo = shap_df["month"].max()
 
@@ -1377,7 +1510,7 @@ def page_zip_comparison(states, clusters, threshold):
                     if not shap_df[(shap_df["zip"] == z) & (shap_df["month"] == latest_mo)].empty]
     missing_shap = [z for z in selected_zips if z not in avail_shap]
     if missing_shap:
-        st.caption(f"SHAP values not available for: {', '.join(missing_shap)} (not in 2023 test set).")
+        st.caption(f"SHAP values not available for: {', '.join(missing_shap)}.")
 
     if avail_shap:
         shap_rows = {
@@ -1631,7 +1764,7 @@ def page_model_performance():
 
     with col2:
         st.subheader("Feature Importance — Mean |SHAP| (Winning Model)")
-        shap_df = load_shap()
+        shap_df = load_full_shap()
         shap_cols = [c for c in shap_df.columns if c.startswith("shap_") and c != "shap_base"]
         mean_abs  = shap_df[shap_cols].abs().mean().sort_values(ascending=False)
         top_n = mean_abs.head(15)
@@ -1681,8 +1814,10 @@ def page_forward_predictions(states, clusters, threshold):
     )
 
     geojson = load_geojson()
-    fwd_bin = load_forward_predictions()
-    fwd_mc  = load_forward_multiclass()
+    # Use the full-panel files (same Nov 2025 snapshot, but generated fresh and
+    # known-clean — the old forward_2025 CSVs had serialization issues on HF)
+    fwd_bin = load_full_predictions()
+    fwd_mc  = load_full_multiclass()
 
     # ── Mode toggle ────────────────────────────────────────────────────────────
     fwd_mode = st.radio(
@@ -1833,7 +1968,7 @@ def page_forward_predictions(states, clusters, threshold):
         paper_bgcolor="rgba(0,0,0,0)", geo=dict(bgcolor="rgba(0,0,0,0)"),
     )
     add_state_overlays(fig)
-    _plotly_chart_safe(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
     # ── Top opportunities table ────────────────────────────────────────────────
     if fwd_mode == "opportunity":
