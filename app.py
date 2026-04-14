@@ -943,7 +943,7 @@ def page_risk_map(states, clusters, threshold):
         display_cols = [c for c in display_cols if c in val_filtered.columns]
         table = (
             val_filtered[display_cols]
-            .sort_values("Opp Score (%)", ascending=False)
+            .sort_values("Avg Opp Score (%)", ascending=False)
             .rename(columns={"zip": "ZIP", "city": "City",
                               "cluster_label": "Cluster", "state": "State"})
         )
