@@ -298,22 +298,25 @@ def build_validation_table():
         df.groupby(["zip", "cluster_name"])
         .agg(
             avg_score=("prob_transition", "mean"),
-            actual_rate=("transition_next_12m", "mean"),
+            peak_score=("prob_transition", "max"),
+            actual_any=("transition_next_12m", "max"),   # 1 if ANY month was upward
             cluster=("cluster", "first"),
         )
         .reset_index()
     )
-    summary["predicted_label"]   = (summary["avg_score"] >= 0.50).astype(int)
-    summary["actual_label"]      = (summary["actual_rate"] >= 0.50).astype(int)
-    summary["correct"]           = summary["predicted_label"] == summary["actual_label"]
-    summary["cluster_label"]     = summary["cluster_name"].map(CLUSTER_LABELS)
-    summary["state"]             = summary["zip"].apply(_state_label)
-    summary["city"]              = summary["zip"].map(cities).fillna("")
-    summary["Opp Score (%)"]     = (summary["avg_score"] * 100).round(1)
-    summary["Actual Trans. Rate"]= (summary["actual_rate"] * 100).round(0).astype(int).astype(str) + "%"
-    summary["Predicted"]         = summary["predicted_label"].map({1: "Up", 0: "Stable/Down"})
-    summary["Actual"]            = summary["actual_label"].map({1: "Up", 0: "Stable/Down"})
-    summary["Match"]             = summary["correct"].map({True: "✓", False: "✗"})
+    # Predicted: did the model think this ZIP was high-opportunity on average?
+    summary["predicted_label"] = (summary["avg_score"] >= 0.50).astype(int)
+    # Actual: did ANY month in 2023 cross the upward-transition threshold?
+    summary["actual_label"]    = summary["actual_any"].fillna(0).astype(int)
+    summary["correct"]         = summary["predicted_label"] == summary["actual_label"]
+    summary["cluster_label"]   = summary["cluster_name"].map(CLUSTER_LABELS)
+    summary["state"]           = summary["zip"].apply(_state_label)
+    summary["city"]            = summary["zip"].map(cities).fillna("")
+    summary["Avg Opp Score (%)"] = (summary["avg_score"] * 100).round(1)
+    summary["Peak Opp Score (%)"]= (summary["peak_score"] * 100).round(1)
+    summary["Predicted"]       = summary["predicted_label"].map({1: "Up", 0: "Stable/Down"})
+    summary["Actual"]          = summary["actual_label"].map({1: "Up ✓", 0: "Stable/Down"})
+    summary["Match"]           = summary["correct"].map({True: "✓", False: "✗"})
     return summary
 
 
@@ -935,8 +938,8 @@ def page_risk_map(states, clusters, threshold):
         c2.metric("Correctly predicted", n_correct)
         c3.metric("ZIP-level accuracy", f"{accuracy:.1%}")
 
-        display_cols = ["zip", "city", "Opp Score (%)", "Predicted", "Actual",
-                        "Actual Trans. Rate", "Match", "cluster_label", "state"]
+        display_cols = ["zip", "city", "Avg Opp Score (%)", "Peak Opp Score (%)",
+                        "Predicted", "Actual", "Match", "cluster_label", "state"]
         display_cols = [c for c in display_cols if c in val_filtered.columns]
         table = (
             val_filtered[display_cols]
@@ -946,8 +949,8 @@ def page_risk_map(states, clusters, threshold):
         )
         st.dataframe(table.reset_index(drop=True), use_container_width=True, height=320)
         st.caption(
-            "**Predicted** = model output ≥ 50% probability · "
-            "**Actual** = majority of 2023 months labeled upward transition · "
+            "**Predicted** = avg 2023 opportunity score ≥ 50% · "
+            "**Actual** = ZIP had at least one month in the top-quartile transition threshold during 2023 · "
             "**Match ✓** = prediction agreed with outcome"
         )
 
